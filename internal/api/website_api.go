@@ -7,6 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/google/uuid"
 	websitev1 "github.com/mcorrigan89/website/gen/serviceapis/website/v1"
 	"github.com/mcorrigan89/website/internal/config"
 	"github.com/mcorrigan89/website/internal/entities"
@@ -95,6 +96,7 @@ func (s *WebsiteServerV1) serializeWebsite(websiteEntity *entities.WebsiteEntity
 			Id:       page.ID.String(),
 			Title:    page.Title,
 			Subtitle: page.Subtitle,
+			UrlSlug:  page.UrlSlug,
 			Sections: sectionsAndComponents,
 		}
 
@@ -107,6 +109,23 @@ func (s *WebsiteServerV1) serializeWebsite(websiteEntity *entities.WebsiteEntity
 		Name:        websiteEntity.DisplayName,
 		Description: websiteEntity.DisplayDescription,
 		Pages:       websitePages,
+		Config: &websitev1.WebsiteConfig{
+			Id:                 websiteEntity.Config.ID.String(),
+			DefaultPageId:      websiteEntity.Config.DefaultPageID.String(),
+			DefaultPageUrlSlug: websiteEntity.GetDefaultPage().UrlSlug,
+		},
+		Styles: &websitev1.WebsiteStyles{
+			Id: websiteEntity.Styles.ID.String(),
+			Palette: &websitev1.Palette{
+				Id:         websiteEntity.Styles.Palette.ID.String(),
+				ColorOne:   websiteEntity.Styles.Palette.Color1,
+				ColorTwo:   websiteEntity.Styles.Palette.Color2,
+				ColorThree: websiteEntity.Styles.Palette.Color3,
+				ColorFour:  websiteEntity.Styles.Palette.Color4,
+				ColorFive:  websiteEntity.Styles.Palette.Color5,
+				ColorSix:   websiteEntity.Styles.Palette.Color6,
+			},
+		},
 	}
 
 	return &website
@@ -176,4 +195,92 @@ func (s *WebsiteServerV1) createSectionsAndComponents(page *entities.WebsitePage
 	}
 
 	return sections
+}
+
+func (s *WebsiteServerV1) CreateWebsitePage(ctx context.Context, req *connect.Request[websitev1.CreateWebsitePageRequest]) (*connect.Response[websitev1.CreateWebsitePageResponse], error) {
+	websiteId := req.Msg.WebsiteId
+	title := req.Msg.Title
+	subtitle := req.Msg.Subtitle
+	urlSlug := req.Msg.UrlSlug
+
+	if websiteId == "" {
+		err := errors.New("website_id is empty")
+		s.logger.Err(err).Ctx(ctx).Msg("WebsiteId is empty")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	websiteUuid, err := uuid.Parse(websiteId)
+	if err != nil {
+		s.logger.Err(err).Ctx(ctx).Msg("Error parsing website_id")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if title == "" {
+		err := errors.New("title is empty")
+		s.logger.Err(err).Ctx(ctx).Msg("Title is empty")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	websitePage, err := s.services.WebsitePageService.CreateWebsitePage(ctx, services.CreateWebsitePageArgs{
+		WebsiteID: websiteUuid,
+		Title:     title,
+		UrlSlug:   urlSlug,
+		Subtitle:  subtitle,
+	})
+	if err != nil {
+		s.logger.Err(err).Ctx(ctx).Msg("Error creating website page")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	res := connect.NewResponse(&websitev1.CreateWebsitePageResponse{
+		Page: &websitev1.WebsitePage{
+			Id:       websitePage.ID.String(),
+			Title:    websitePage.Title,
+			Subtitle: websitePage.Subtitle,
+			UrlSlug:  websitePage.UrlSlug,
+		},
+	})
+	res.Header().Set("Website-Version", "v1")
+	return res, nil
+}
+
+func (s *WebsiteServerV1) UpdateWebsitePage(ctx context.Context, req *connect.Request[websitev1.UpdateWebsitePageRequest]) (*connect.Response[websitev1.UpdateWebsitePageResponse], error) {
+	id := req.Msg.Id
+	title := req.Msg.Title
+	subtitle := req.Msg.Subtitle
+	urlSlug := req.Msg.UrlSlug
+
+	if id == "" {
+		err := errors.New("id is empty")
+		s.logger.Err(err).Ctx(ctx).Msg("ID is empty")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	Uuid, err := uuid.Parse(id)
+	if err != nil {
+		s.logger.Err(err).Ctx(ctx).Msg("Error parsing website_id")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	websitePage, err := s.services.WebsitePageService.UpdateWebsitePage(ctx, services.UpdateWebsitePageArgs{
+		ID:       Uuid,
+		Title:    &title,
+		UrlSlug:  &urlSlug,
+		Subtitle: subtitle,
+	})
+	if err != nil {
+		s.logger.Err(err).Ctx(ctx).Msg("Error updating website page")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	res := connect.NewResponse(&websitev1.UpdateWebsitePageResponse{
+		Page: &websitev1.WebsitePage{
+			Id:       websitePage.ID.String(),
+			Title:    websitePage.Title,
+			Subtitle: websitePage.Subtitle,
+			UrlSlug:  websitePage.UrlSlug,
+		},
+	})
+	res.Header().Set("Website-Version", "v1")
+	return res, nil
 }

@@ -12,6 +12,16 @@ type WebsiteEntity struct {
 	Pages              []*WebsitePageEntity
 }
 
+func (w *WebsiteEntity) GetDefaultPage() *WebsitePageEntity {
+	for _, page := range w.Pages {
+		if page.ID == w.Config.DefaultPageID {
+			return page
+		}
+	}
+
+	return nil
+}
+
 type WebsiteConfigEntity struct {
 	ID            uuid.UUID
 	WebsiteID     uuid.UUID
@@ -32,7 +42,7 @@ type PaletteEntity struct {
 type WebsiteStylesEntity struct {
 	ID        uuid.UUID
 	WebsiteID uuid.UUID
-	Palette   PaletteEntity
+	Palette   *PaletteEntity
 }
 
 type WebsitePageEntity struct {

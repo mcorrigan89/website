@@ -80,7 +80,7 @@ type CreateWebsitePageArgs struct {
 	WebsiteID uuid.UUID
 	Locale    *string
 	UrlSlug   string
-	Title     *string
+	Title     string
 	Subtitle  *string
 }
 
@@ -153,7 +153,7 @@ func (repo *WebsitePageRepository) CreateWebsitePage(ctx context.Context, args C
 		ID:            uuid.New(),
 		WebsitePageID: row.ID,
 		Locale:        locale,
-		Title:         args.Title,
+		Title:         &args.Title,
 		Subtitle:      args.Subtitle,
 	})
 

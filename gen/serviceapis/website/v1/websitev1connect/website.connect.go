@@ -39,19 +39,29 @@ const (
 	// WebsiteServiceCreateWebsiteProcedure is the fully-qualified name of the WebsiteService's
 	// CreateWebsite RPC.
 	WebsiteServiceCreateWebsiteProcedure = "/serviceapis.website.v1.WebsiteService/CreateWebsite"
+	// WebsiteServiceCreateWebsitePageProcedure is the fully-qualified name of the WebsiteService's
+	// CreateWebsitePage RPC.
+	WebsiteServiceCreateWebsitePageProcedure = "/serviceapis.website.v1.WebsiteService/CreateWebsitePage"
+	// WebsiteServiceUpdateWebsitePageProcedure is the fully-qualified name of the WebsiteService's
+	// UpdateWebsitePage RPC.
+	WebsiteServiceUpdateWebsitePageProcedure = "/serviceapis.website.v1.WebsiteService/UpdateWebsitePage"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	websiteServiceServiceDescriptor               = v1.File_serviceapis_website_v1_website_proto.Services().ByName("WebsiteService")
-	websiteServiceWebsiteByHandleMethodDescriptor = websiteServiceServiceDescriptor.Methods().ByName("WebsiteByHandle")
-	websiteServiceCreateWebsiteMethodDescriptor   = websiteServiceServiceDescriptor.Methods().ByName("CreateWebsite")
+	websiteServiceServiceDescriptor                 = v1.File_serviceapis_website_v1_website_proto.Services().ByName("WebsiteService")
+	websiteServiceWebsiteByHandleMethodDescriptor   = websiteServiceServiceDescriptor.Methods().ByName("WebsiteByHandle")
+	websiteServiceCreateWebsiteMethodDescriptor     = websiteServiceServiceDescriptor.Methods().ByName("CreateWebsite")
+	websiteServiceCreateWebsitePageMethodDescriptor = websiteServiceServiceDescriptor.Methods().ByName("CreateWebsitePage")
+	websiteServiceUpdateWebsitePageMethodDescriptor = websiteServiceServiceDescriptor.Methods().ByName("UpdateWebsitePage")
 )
 
 // WebsiteServiceClient is a client for the serviceapis.website.v1.WebsiteService service.
 type WebsiteServiceClient interface {
 	WebsiteByHandle(context.Context, *connect.Request[v1.WebsiteByHandleRequest]) (*connect.Response[v1.WebsiteByHandleResponse], error)
 	CreateWebsite(context.Context, *connect.Request[v1.CreateWebsiteRequest]) (*connect.Response[v1.CreateWebsiteResponse], error)
+	CreateWebsitePage(context.Context, *connect.Request[v1.CreateWebsitePageRequest]) (*connect.Response[v1.CreateWebsitePageResponse], error)
+	UpdateWebsitePage(context.Context, *connect.Request[v1.UpdateWebsitePageRequest]) (*connect.Response[v1.UpdateWebsitePageResponse], error)
 }
 
 // NewWebsiteServiceClient constructs a client for the serviceapis.website.v1.WebsiteService
@@ -76,13 +86,27 @@ func NewWebsiteServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(websiteServiceCreateWebsiteMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		createWebsitePage: connect.NewClient[v1.CreateWebsitePageRequest, v1.CreateWebsitePageResponse](
+			httpClient,
+			baseURL+WebsiteServiceCreateWebsitePageProcedure,
+			connect.WithSchema(websiteServiceCreateWebsitePageMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		updateWebsitePage: connect.NewClient[v1.UpdateWebsitePageRequest, v1.UpdateWebsitePageResponse](
+			httpClient,
+			baseURL+WebsiteServiceUpdateWebsitePageProcedure,
+			connect.WithSchema(websiteServiceUpdateWebsitePageMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // websiteServiceClient implements WebsiteServiceClient.
 type websiteServiceClient struct {
-	websiteByHandle *connect.Client[v1.WebsiteByHandleRequest, v1.WebsiteByHandleResponse]
-	createWebsite   *connect.Client[v1.CreateWebsiteRequest, v1.CreateWebsiteResponse]
+	websiteByHandle   *connect.Client[v1.WebsiteByHandleRequest, v1.WebsiteByHandleResponse]
+	createWebsite     *connect.Client[v1.CreateWebsiteRequest, v1.CreateWebsiteResponse]
+	createWebsitePage *connect.Client[v1.CreateWebsitePageRequest, v1.CreateWebsitePageResponse]
+	updateWebsitePage *connect.Client[v1.UpdateWebsitePageRequest, v1.UpdateWebsitePageResponse]
 }
 
 // WebsiteByHandle calls serviceapis.website.v1.WebsiteService.WebsiteByHandle.
@@ -95,10 +119,22 @@ func (c *websiteServiceClient) CreateWebsite(ctx context.Context, req *connect.R
 	return c.createWebsite.CallUnary(ctx, req)
 }
 
+// CreateWebsitePage calls serviceapis.website.v1.WebsiteService.CreateWebsitePage.
+func (c *websiteServiceClient) CreateWebsitePage(ctx context.Context, req *connect.Request[v1.CreateWebsitePageRequest]) (*connect.Response[v1.CreateWebsitePageResponse], error) {
+	return c.createWebsitePage.CallUnary(ctx, req)
+}
+
+// UpdateWebsitePage calls serviceapis.website.v1.WebsiteService.UpdateWebsitePage.
+func (c *websiteServiceClient) UpdateWebsitePage(ctx context.Context, req *connect.Request[v1.UpdateWebsitePageRequest]) (*connect.Response[v1.UpdateWebsitePageResponse], error) {
+	return c.updateWebsitePage.CallUnary(ctx, req)
+}
+
 // WebsiteServiceHandler is an implementation of the serviceapis.website.v1.WebsiteService service.
 type WebsiteServiceHandler interface {
 	WebsiteByHandle(context.Context, *connect.Request[v1.WebsiteByHandleRequest]) (*connect.Response[v1.WebsiteByHandleResponse], error)
 	CreateWebsite(context.Context, *connect.Request[v1.CreateWebsiteRequest]) (*connect.Response[v1.CreateWebsiteResponse], error)
+	CreateWebsitePage(context.Context, *connect.Request[v1.CreateWebsitePageRequest]) (*connect.Response[v1.CreateWebsitePageResponse], error)
+	UpdateWebsitePage(context.Context, *connect.Request[v1.UpdateWebsitePageRequest]) (*connect.Response[v1.UpdateWebsitePageResponse], error)
 }
 
 // NewWebsiteServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -119,12 +155,28 @@ func NewWebsiteServiceHandler(svc WebsiteServiceHandler, opts ...connect.Handler
 		connect.WithSchema(websiteServiceCreateWebsiteMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	websiteServiceCreateWebsitePageHandler := connect.NewUnaryHandler(
+		WebsiteServiceCreateWebsitePageProcedure,
+		svc.CreateWebsitePage,
+		connect.WithSchema(websiteServiceCreateWebsitePageMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	websiteServiceUpdateWebsitePageHandler := connect.NewUnaryHandler(
+		WebsiteServiceUpdateWebsitePageProcedure,
+		svc.UpdateWebsitePage,
+		connect.WithSchema(websiteServiceUpdateWebsitePageMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/serviceapis.website.v1.WebsiteService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case WebsiteServiceWebsiteByHandleProcedure:
 			websiteServiceWebsiteByHandleHandler.ServeHTTP(w, r)
 		case WebsiteServiceCreateWebsiteProcedure:
 			websiteServiceCreateWebsiteHandler.ServeHTTP(w, r)
+		case WebsiteServiceCreateWebsitePageProcedure:
+			websiteServiceCreateWebsitePageHandler.ServeHTTP(w, r)
+		case WebsiteServiceUpdateWebsitePageProcedure:
+			websiteServiceUpdateWebsitePageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -140,4 +192,12 @@ func (UnimplementedWebsiteServiceHandler) WebsiteByHandle(context.Context, *conn
 
 func (UnimplementedWebsiteServiceHandler) CreateWebsite(context.Context, *connect.Request[v1.CreateWebsiteRequest]) (*connect.Response[v1.CreateWebsiteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("serviceapis.website.v1.WebsiteService.CreateWebsite is not implemented"))
+}
+
+func (UnimplementedWebsiteServiceHandler) CreateWebsitePage(context.Context, *connect.Request[v1.CreateWebsitePageRequest]) (*connect.Response[v1.CreateWebsitePageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("serviceapis.website.v1.WebsiteService.CreateWebsitePage is not implemented"))
+}
+
+func (UnimplementedWebsiteServiceHandler) UpdateWebsitePage(context.Context, *connect.Request[v1.UpdateWebsitePageRequest]) (*connect.Response[v1.UpdateWebsitePageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("serviceapis.website.v1.WebsiteService.UpdateWebsitePage is not implemented"))
 }

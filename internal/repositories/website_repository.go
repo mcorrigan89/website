@@ -29,16 +29,7 @@ func (repo *WebsiteRepository) GetWebsiteByHandle(ctx context.Context, handle st
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
-	tx, err := repo.DB.Begin(ctx)
-	if err != nil {
-		repo.utils.logger.Err(err).Ctx(ctx).Msg("Error with transaction creating person")
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-
-	qtx := repo.queries.WithTx(tx)
-
-	row, err := qtx.GetWebsiteByHandle(ctx, handle)
+	row, err := repo.queries.GetWebsiteByHandle(ctx, handle)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, ErrNotFound
@@ -48,7 +39,12 @@ func (repo *WebsiteRepository) GetWebsiteByHandle(ctx context.Context, handle st
 		}
 	}
 
-	websiteEntity, err := repo.gatherWebsiteData(ctx, qtx, &row.Website, locale)
+	websiteEntity, err := repo.gatherWebsiteData(ctx, repo.queries, websiteData{
+		website: row.Website,
+		config:  row.WebsiteConfig,
+		styles:  row.WebsiteStyle,
+		palette: row.Palette,
+	}, locale)
 	if err != nil {
 		repo.utils.logger.Err(err).Ctx(ctx).Msg("Error gathering website data")
 		return nil, err
@@ -124,7 +120,7 @@ func (repo *WebsiteRepository) CreateWebsite(ctx context.Context, args CreateWeb
 		return nil, err
 	}
 
-	_, err = qtx.CreateWebsiteConfig(ctx, models.CreateWebsiteConfigParams{
+	createdConfig, err := qtx.CreateWebsiteConfig(ctx, models.CreateWebsiteConfigParams{
 		WebsiteID:     createdWebsite.ID,
 		DefaultPageID: defaultHomePage.ID,
 	})
@@ -140,7 +136,7 @@ func (repo *WebsiteRepository) CreateWebsite(ctx context.Context, args CreateWeb
 		return nil, err
 	}
 
-	_, err = qtx.CreatePalette(ctx, models.CreatePaletteParams{
+	createdPalette, err := qtx.CreatePalette(ctx, models.CreatePaletteParams{
 		WebsiteStylesID: createWebsiteStyles.ID,
 		ColorOne:        "#000000",
 		ColorTwo:        "#000000",
@@ -161,7 +157,12 @@ func (repo *WebsiteRepository) CreateWebsite(ctx context.Context, args CreateWeb
 		return nil, err
 	}
 
-	websiteEntity, err := repo.gatherWebsiteData(ctx, repo.queries, &createdWebsite, &args.Locale)
+	websiteEntity, err := repo.gatherWebsiteData(ctx, repo.queries, websiteData{
+		website: createdWebsite,
+		config:  createdConfig,
+		styles:  createWebsiteStyles,
+		palette: createdPalette,
+	}, &args.Locale)
 
 	if err != nil {
 		repo.utils.logger.Err(err).Ctx(ctx).Msg("Error gathering website data")
@@ -171,14 +172,21 @@ func (repo *WebsiteRepository) CreateWebsite(ctx context.Context, args CreateWeb
 	return websiteEntity, nil
 }
 
-func (repo *WebsiteRepository) gatherWebsiteData(ctx context.Context, queries *models.Queries, website *models.Website, locale *string) (*entities.WebsiteEntity, error) {
+type websiteData struct {
+	website models.Website
+	config  models.WebsiteConfig
+	styles  models.WebsiteStyle
+	palette models.Palette
+}
+
+func (repo *WebsiteRepository) gatherWebsiteData(ctx context.Context, queries *models.Queries, websiteData websiteData, locale *string) (*entities.WebsiteEntity, error) {
 
 	if locale == nil {
-		locale = &website.DefaultLocale
+		locale = &websiteData.website.DefaultLocale
 	}
 
 	websiteContentRow, err := queries.GetWebsiteContentByWebsiteID(ctx, models.GetWebsiteContentByWebsiteIDParams{
-		WebsiteID: website.ID,
+		WebsiteID: websiteData.website.ID,
 		Locale:    *locale,
 	})
 
@@ -188,7 +196,7 @@ func (repo *WebsiteRepository) gatherWebsiteData(ctx context.Context, queries *m
 	}
 
 	pageRows, err := queries.GetWebsitePagesByWebsiteID(ctx, models.GetWebsitePagesByWebsiteIDParams{
-		WebsiteID: website.ID,
+		WebsiteID: websiteData.website.ID,
 		Locale:    *locale,
 	})
 
@@ -197,14 +205,14 @@ func (repo *WebsiteRepository) gatherWebsiteData(ctx context.Context, queries *m
 		return nil, err
 	}
 
-	sectionRows, err := queries.GetWebsiteSectionsByWebsiteID(ctx, website.ID)
+	sectionRows, err := queries.GetWebsiteSectionsByWebsiteID(ctx, websiteData.website.ID)
 	if err != nil {
 		repo.utils.logger.Err(err).Ctx(ctx).Msg("Error getting website sections by page id")
 		return nil, err
 	}
 
 	textComponentRows, err := queries.GetTextComponentsByWebsiteID(ctx, models.GetTextComponentsByWebsiteIDParams{
-		WebsiteID: website.ID,
+		WebsiteID: websiteData.website.ID,
 		Locale:    *locale,
 	})
 
@@ -213,15 +221,18 @@ func (repo *WebsiteRepository) gatherWebsiteData(ctx context.Context, queries *m
 		return nil, err
 	}
 
-	imageComponentRows, err := queries.GetImageComponentsByWebsiteID(ctx, website.ID)
+	imageComponentRows, err := queries.GetImageComponentsByWebsiteID(ctx, websiteData.website.ID)
 	if err != nil {
 		repo.utils.logger.Err(err).Ctx(ctx).Msg("Error getting image components by website id")
 		return nil, err
 	}
 
 	websiteEntity := repo.modelToEntity(websiteArgs{
-		website:        *website,
+		website:        websiteData.website,
 		websiteContent: websiteContentRow.WebsiteContent,
+		websiteConfig:  websiteData.config,
+		websiteStyle:   websiteData.styles,
+		palette:        websiteData.palette,
 	}, pageRows, componentArgs{
 		sections:        sectionRows,
 		textComponents:  textComponentRows,
@@ -335,7 +346,7 @@ func (repo *WebsiteRepository) modelToEntity(websiteData websiteArgs, pages []mo
 		Styles: &entities.WebsiteStylesEntity{
 			ID:        websiteData.websiteStyle.ID,
 			WebsiteID: websiteData.websiteStyle.WebsiteID,
-			Palette: entities.PaletteEntity{
+			Palette: &entities.PaletteEntity{
 				ID:        websiteData.palette.ID,
 				WebsiteID: websiteData.website.ID,
 				Color1:    websiteData.palette.ColorOne,

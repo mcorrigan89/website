@@ -43,12 +43,10 @@ func (service *WebsitePageService) WebsitePageByID(ctx context.Context, args Web
 }
 
 type CreateWebsitePageArgs struct {
-	WebsiteID  uuid.UUID
-	UrlSlug    string
-	Title      *string
-	Subtitle   *string
-	IsPrivate  *bool
-	IsDisabled *bool
+	WebsiteID uuid.UUID
+	UrlSlug   string
+	Title     string
+	Subtitle  *string
 }
 
 func (service *WebsitePageService) CreateWebsitePage(ctx context.Context, args CreateWebsitePageArgs) (*entities.WebsitePageEntity, error) {
@@ -68,12 +66,10 @@ func (service *WebsitePageService) CreateWebsitePage(ctx context.Context, args C
 }
 
 type UpdateWebsitePageArgs struct {
-	ID         uuid.UUID
-	UrlSlug    *string
-	Title      *string
-	Subtitle   *string
-	IsPrivate  *bool
-	IsDisabled *bool
+	ID       uuid.UUID
+	UrlSlug  *string
+	Title    *string
+	Subtitle *string
 }
 
 func (service *WebsitePageService) UpdateWebsitePage(ctx context.Context, args UpdateWebsitePageArgs) (*entities.WebsitePageEntity, error) {
