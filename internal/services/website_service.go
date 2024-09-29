@@ -29,3 +29,29 @@ func (service *WebsiteService) GetWebsiteByHandle(ctx context.Context, handle st
 
 	return website, nil
 }
+
+type CreateWebsiteArgs struct {
+	Handle string
+	Locale *string
+}
+
+func (service *WebsiteService) CreateWebsite(ctx context.Context, args CreateWebsiteArgs) (*entities.WebsiteEntity, error) {
+	service.utils.logger.Info().Ctx(ctx).Interface("args", args).Msg("Creating website")
+	var locale string
+	if args.Locale == nil {
+		locale = "en"
+	} else {
+		locale = *args.Locale
+	}
+
+	website, err := service.websiteRepository.CreateWebsite(ctx, repositories.CreateWebsiteArgs{
+		Handle: args.Handle,
+		Locale: locale,
+	})
+	if err != nil {
+		service.utils.logger.Err(err).Ctx(ctx).Msg("Error creating website")
+		return nil, err
+	}
+
+	return website, nil
+}

@@ -7,4 +7,7 @@ DROP TABLE IF EXISTS website_section;
 DROP TABLE IF EXISTS website_page_content;
 DROP TABLE IF EXISTS website_page;
 DROP TABLE IF EXISTS website_content;
+DROP TABLE IF EXISTS website_styles;
+DROP TABLE IF EXISTS palette;
+DROP TABLE IF EXISTS website_config;
 DROP TABLE IF EXISTS website;

@@ -24,6 +24,20 @@ type ImageComponent struct {
 	Version            int32              `json:"version"`
 }
 
+type Palette struct {
+	ID              uuid.UUID          `json:"id"`
+	WebsiteStylesID uuid.UUID          `json:"website_styles_id"`
+	ColorOne        string             `json:"color_one"`
+	ColorTwo        string             `json:"color_two"`
+	ColorThree      string             `json:"color_three"`
+	ColorFour       string             `json:"color_four"`
+	ColorFive       string             `json:"color_five"`
+	ColorSix        string             `json:"color_six"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	Version         int32              `json:"version"`
+}
+
 type SchemaMigration struct {
 	Version int64 `json:"version"`
 	Dirty   bool  `json:"dirty"`
@@ -74,11 +88,20 @@ type WebsiteComponentDisplay struct {
 	Version            int32              `json:"version"`
 }
 
+type WebsiteConfig struct {
+	ID            uuid.UUID          `json:"id"`
+	WebsiteID     uuid.UUID          `json:"website_id"`
+	DefaultPageID uuid.UUID          `json:"default_page_id"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	Version       int32              `json:"version"`
+}
+
 type WebsiteContent struct {
 	ID                        uuid.UUID          `json:"id"`
 	WebsiteID                 uuid.UUID          `json:"website_id"`
 	Locale                    string             `json:"locale"`
-	WebsiteDisplayName        *string            `json:"website_display_name"`
+	WebsiteDisplayName        string             `json:"website_display_name"`
 	WebsiteDisplayDescription *string            `json:"website_display_description"`
 	CreatedAt                 pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt                 pgtype.Timestamptz `json:"updated_at"`
@@ -99,7 +122,7 @@ type WebsitePageContent struct {
 	ID            uuid.UUID          `json:"id"`
 	WebsitePageID uuid.UUID          `json:"website_page_id"`
 	Locale        string             `json:"locale"`
-	Title         *string            `json:"title"`
+	Title         string             `json:"title"`
 	Subtitle      *string            `json:"subtitle"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
@@ -124,4 +147,12 @@ type WebsiteSectionDisplay struct {
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 	Version          int32              `json:"version"`
+}
+
+type WebsiteStyle struct {
+	ID        uuid.UUID          `json:"id"`
+	WebsiteID uuid.UUID          `json:"website_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	Version   int32              `json:"version"`
 }

@@ -12,12 +12,38 @@ CREATE TABLE IF NOT EXISTS website (
   version integer NOT NULL DEFAULT 1
 );
 
+
+CREATE TABLE IF NOT EXISTS website_styles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    website_id UUID NOT NULL REFERENCES website(id) ON DELETE CASCADE,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    version integer NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS palette (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    website_styles_id UUID NOT NULL REFERENCES website_styles(id) ON DELETE CASCADE,
+
+    color_one TEXT NOT NULL,
+    color_two TEXT NOT NULL,
+    color_three TEXT NOT NULL,
+    color_four TEXT NOT NULL,
+    color_five TEXT NOT NULL,
+    color_six TEXT NOT NULL,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    version integer NOT NULL DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS website_content (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     website_id UUID NOT NULL REFERENCES website(id) ON DELETE CASCADE,
     locale citext NOT NULL,
 
-    website_display_name TEXT,
+    website_display_name TEXT NOT NULL,
     website_display_description TEXT,
 
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -37,11 +63,22 @@ CREATE TABLE IF NOT EXISTS website_page (
     version integer NOT NULL DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS website_config (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    website_id UUID NOT NULL REFERENCES website(id) ON DELETE CASCADE,
+    
+    default_page_id UUID NOT NULL REFERENCES website_page(id) ON DELETE CASCADE,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    version integer NOT NULL DEFAULT 1
+);
+
 CREATE TABLE IF NOT EXISTS website_page_content (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     website_page_id UUID NOT NULL REFERENCES website_page(id) ON DELETE CASCADE,
     locale citext NOT NULL,
-    title TEXT,
+    title TEXT NOT NULL,
     subtitle TEXT,
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -84,7 +121,7 @@ CREATE TABLE IF NOT EXISTS website_component (
 
 CREATE TABLE IF NOT EXISTS website_component_display (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    website_component_id UUID NOT NULL REFERENCES website(id) ON DELETE CASCADE,
+    website_component_id UUID NOT NULL REFERENCES website_component(id) ON DELETE CASCADE,
 
     height INTEGER NOT NULL,
     width INTEGER NOT NULL,

@@ -5,9 +5,34 @@ import "github.com/google/uuid"
 type WebsiteEntity struct {
 	ID                 uuid.UUID
 	Handle             string
-	DisplayName        *string
+	DisplayName        string
 	DisplayDescription *string
+	Config             *WebsiteConfigEntity
+	Styles             *WebsiteStylesEntity
 	Pages              []*WebsitePageEntity
+}
+
+type WebsiteConfigEntity struct {
+	ID            uuid.UUID
+	WebsiteID     uuid.UUID
+	DefaultPageID uuid.UUID
+}
+
+type PaletteEntity struct {
+	ID        uuid.UUID
+	WebsiteID uuid.UUID
+	Color1    string
+	Color2    string
+	Color3    string
+	Color4    string
+	Color5    string
+	Color6    string
+}
+
+type WebsiteStylesEntity struct {
+	ID        uuid.UUID
+	WebsiteID uuid.UUID
+	Palette   PaletteEntity
 }
 
 type WebsitePageEntity struct {
@@ -15,7 +40,7 @@ type WebsitePageEntity struct {
 	WebsiteID uuid.UUID
 	UrlSlug   string
 	SortKey   string
-	Title     *string
+	Title     string
 	Subtitle  *string
 	Sections  []*WebsitePageSectionEntity
 }
@@ -29,4 +54,10 @@ type WebsitePageSectionEntity struct {
 	RowCount int32
 
 	Components []*WebsiteComponentEntity
+}
+
+type WebsiteSectionDisplayEntity struct {
+	ID       uuid.UUID
+	RowCount int32
+	ImageID  uuid.UUID
 }

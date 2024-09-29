@@ -47,9 +47,47 @@ func (s *WebsiteServerV1) WebsiteByHandle(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
+	websiteMessage := s.serializeWebsite(website)
+
+	res := connect.NewResponse(&websitev1.WebsiteByHandleResponse{
+		Website: websiteMessage,
+	})
+	res.Header().Set("Website-Version", "v1")
+	return res, nil
+}
+
+func (s *WebsiteServerV1) CreateWebsite(ctx context.Context, req *connect.Request[websitev1.CreateWebsiteRequest]) (*connect.Response[websitev1.CreateWebsiteResponse], error) {
+	handle := req.Msg.Handle
+	locale := req.Msg.Locale
+
+	if handle == "" {
+		err := errors.New("handle is empty")
+		s.logger.Err(err).Ctx(ctx).Msg("Handle is empty")
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	website, err := s.services.WebsiteService.CreateWebsite(ctx, services.CreateWebsiteArgs{
+		Handle: handle,
+		Locale: locale,
+	})
+	if err != nil {
+		s.logger.Err(err).Ctx(ctx).Msg("Error sending verification email")
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	websiteMessage := s.serializeWebsite(website)
+
+	res := connect.NewResponse(&websitev1.CreateWebsiteResponse{
+		Website: websiteMessage,
+	})
+	res.Header().Set("Website-Version", "v1")
+	return res, nil
+}
+
+func (s *WebsiteServerV1) serializeWebsite(websiteEntity *entities.WebsiteEntity) *websitev1.Website {
 	websitePages := []*websitev1.WebsitePage{}
 
-	for _, page := range website.Pages {
+	for _, page := range websiteEntity.Pages {
 
 		sectionsAndComponents := s.createSectionsAndComponents(page)
 
@@ -63,17 +101,15 @@ func (s *WebsiteServerV1) WebsiteByHandle(ctx context.Context, req *connect.Requ
 		websitePages = append(websitePages, &p)
 	}
 
-	res := connect.NewResponse(&websitev1.WebsiteByHandleResponse{
-		Website: &websitev1.Website{
-			Id:          website.ID.String(),
-			Handle:      website.Handle,
-			Name:        website.DisplayName,
-			Description: website.DisplayDescription,
-			Pages:       websitePages,
-		},
-	})
-	res.Header().Set("Website-Version", "v1")
-	return res, nil
+	website := websitev1.Website{
+		Id:          websiteEntity.ID.String(),
+		Handle:      websiteEntity.Handle,
+		Name:        websiteEntity.DisplayName,
+		Description: websiteEntity.DisplayDescription,
+		Pages:       websitePages,
+	}
+
+	return &website
 }
 
 func (s *WebsiteServerV1) createSectionsAndComponents(page *entities.WebsitePageEntity) []*websitev1.WebsiteSection {
@@ -105,6 +141,21 @@ func (s *WebsiteServerV1) createSectionsAndComponents(page *entities.WebsitePage
 			if component.ImageComponent != nil {
 				c := websitev1.WebsiteComponent{
 					Id: component.ID.String(),
+					Display: &websitev1.WebsiteComponentDisplay{
+						Id: component.Display.ID.String(),
+						FullScreen: &websitev1.WebsiteComponentPositioning{
+							XCoordinate: component.Display.FullScreenPositioning.Xcoord,
+							YCoordinate: component.Display.FullScreenPositioning.Ycoord,
+							Width:       component.Display.FullScreenPositioning.Width,
+							Height:      component.Display.FullScreenPositioning.Height,
+						},
+						MobileScreen: &websitev1.WebsiteComponentPositioning{
+							XCoordinate: component.Display.FullScreenPositioning.Xcoord,
+							YCoordinate: component.Display.FullScreenPositioning.Ycoord,
+							Width:       component.Display.FullScreenPositioning.Width,
+							Height:      component.Display.FullScreenPositioning.Height,
+						},
+					},
 					ComponentContent: &websitev1.WebsiteComponent_ImageComponent{
 						ImageComponent: &websitev1.ImageComponent{
 							Url: component.ImageComponent.PhotoURL,

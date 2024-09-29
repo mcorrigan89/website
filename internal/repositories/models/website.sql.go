@@ -11,6 +11,142 @@ import (
 	"github.com/google/uuid"
 )
 
+const createPalette = `-- name: CreatePalette :one
+INSERT INTO palette (website_styles_id, color_one, color_two, color_three, color_four, color_five, color_six) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, website_styles_id, color_one, color_two, color_three, color_four, color_five, color_six, created_at, updated_at, version
+`
+
+type CreatePaletteParams struct {
+	WebsiteStylesID uuid.UUID `json:"website_styles_id"`
+	ColorOne        string    `json:"color_one"`
+	ColorTwo        string    `json:"color_two"`
+	ColorThree      string    `json:"color_three"`
+	ColorFour       string    `json:"color_four"`
+	ColorFive       string    `json:"color_five"`
+	ColorSix        string    `json:"color_six"`
+}
+
+func (q *Queries) CreatePalette(ctx context.Context, arg CreatePaletteParams) (Palette, error) {
+	row := q.db.QueryRow(ctx, createPalette,
+		arg.WebsiteStylesID,
+		arg.ColorOne,
+		arg.ColorTwo,
+		arg.ColorThree,
+		arg.ColorFour,
+		arg.ColorFive,
+		arg.ColorSix,
+	)
+	var i Palette
+	err := row.Scan(
+		&i.ID,
+		&i.WebsiteStylesID,
+		&i.ColorOne,
+		&i.ColorTwo,
+		&i.ColorThree,
+		&i.ColorFour,
+		&i.ColorFive,
+		&i.ColorSix,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Version,
+	)
+	return i, err
+}
+
+const createWebsite = `-- name: CreateWebsite :one
+INSERT INTO website (handle, default_locale) VALUES ($1, $2) RETURNING id, handle, default_locale, created_at, updated_at, version
+`
+
+type CreateWebsiteParams struct {
+	Handle        string `json:"handle"`
+	DefaultLocale string `json:"default_locale"`
+}
+
+func (q *Queries) CreateWebsite(ctx context.Context, arg CreateWebsiteParams) (Website, error) {
+	row := q.db.QueryRow(ctx, createWebsite, arg.Handle, arg.DefaultLocale)
+	var i Website
+	err := row.Scan(
+		&i.ID,
+		&i.Handle,
+		&i.DefaultLocale,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Version,
+	)
+	return i, err
+}
+
+const createWebsiteConfig = `-- name: CreateWebsiteConfig :one
+INSERT INTO website_config (website_id, default_page_id) VALUES ($1, $2) RETURNING id, website_id, default_page_id, created_at, updated_at, version
+`
+
+type CreateWebsiteConfigParams struct {
+	WebsiteID     uuid.UUID `json:"website_id"`
+	DefaultPageID uuid.UUID `json:"default_page_id"`
+}
+
+func (q *Queries) CreateWebsiteConfig(ctx context.Context, arg CreateWebsiteConfigParams) (WebsiteConfig, error) {
+	row := q.db.QueryRow(ctx, createWebsiteConfig, arg.WebsiteID, arg.DefaultPageID)
+	var i WebsiteConfig
+	err := row.Scan(
+		&i.ID,
+		&i.WebsiteID,
+		&i.DefaultPageID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Version,
+	)
+	return i, err
+}
+
+const createWebsiteContent = `-- name: CreateWebsiteContent :one
+INSERT INTO website_content (website_id, locale, website_display_name, website_display_description) VALUES ($1, $2, $3, $4) RETURNING id, website_id, locale, website_display_name, website_display_description, created_at, updated_at, version
+`
+
+type CreateWebsiteContentParams struct {
+	WebsiteID                 uuid.UUID `json:"website_id"`
+	Locale                    string    `json:"locale"`
+	WebsiteDisplayName        string    `json:"website_display_name"`
+	WebsiteDisplayDescription *string   `json:"website_display_description"`
+}
+
+func (q *Queries) CreateWebsiteContent(ctx context.Context, arg CreateWebsiteContentParams) (WebsiteContent, error) {
+	row := q.db.QueryRow(ctx, createWebsiteContent,
+		arg.WebsiteID,
+		arg.Locale,
+		arg.WebsiteDisplayName,
+		arg.WebsiteDisplayDescription,
+	)
+	var i WebsiteContent
+	err := row.Scan(
+		&i.ID,
+		&i.WebsiteID,
+		&i.Locale,
+		&i.WebsiteDisplayName,
+		&i.WebsiteDisplayDescription,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Version,
+	)
+	return i, err
+}
+
+const createWebsiteStyles = `-- name: CreateWebsiteStyles :one
+INSERT INTO website_styles (website_id) VALUES ($1) RETURNING id, website_id, created_at, updated_at, version
+`
+
+func (q *Queries) CreateWebsiteStyles(ctx context.Context, websiteID uuid.UUID) (WebsiteStyle, error) {
+	row := q.db.QueryRow(ctx, createWebsiteStyles, websiteID)
+	var i WebsiteStyle
+	err := row.Scan(
+		&i.ID,
+		&i.WebsiteID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Version,
+	)
+	return i, err
+}
+
 const getWebsiteByComponentID = `-- name: GetWebsiteByComponentID :one
 SELECT website.id, website.handle, website.default_locale, website.created_at, website.updated_at, website.version FROM website 
 LEFT JOIN website_component ON website.id = website_component.website_id
@@ -36,11 +172,18 @@ func (q *Queries) GetWebsiteByComponentID(ctx context.Context, id uuid.UUID) (Ge
 }
 
 const getWebsiteByHandle = `-- name: GetWebsiteByHandle :one
-SELECT website.id, website.handle, website.default_locale, website.created_at, website.updated_at, website.version FROM website WHERE handle = $1
+SELECT website.id, website.handle, website.default_locale, website.created_at, website.updated_at, website.version, website_config.id, website_config.website_id, website_config.default_page_id, website_config.created_at, website_config.updated_at, website_config.version, website_styles.id, website_styles.website_id, website_styles.created_at, website_styles.updated_at, website_styles.version, palette.id, palette.website_styles_id, palette.color_one, palette.color_two, palette.color_three, palette.color_four, palette.color_five, palette.color_six, palette.created_at, palette.updated_at, palette.version FROM website 
+LEFT JOIN website_config ON website.id = website_config.website_id
+LEFT JOIN website_styles ON website.id = website_styles.website_id
+LEFT JOIN palette ON website_styles.id = palette.website_styles_id
+WHERE website.handle = $1
 `
 
 type GetWebsiteByHandleRow struct {
-	Website Website `json:"website"`
+	Website       Website       `json:"website"`
+	WebsiteConfig WebsiteConfig `json:"website_config"`
+	WebsiteStyle  WebsiteStyle  `json:"website_style"`
+	Palette       Palette       `json:"palette"`
 }
 
 func (q *Queries) GetWebsiteByHandle(ctx context.Context, handle string) (GetWebsiteByHandleRow, error) {
@@ -53,16 +196,45 @@ func (q *Queries) GetWebsiteByHandle(ctx context.Context, handle string) (GetWeb
 		&i.Website.CreatedAt,
 		&i.Website.UpdatedAt,
 		&i.Website.Version,
+		&i.WebsiteConfig.ID,
+		&i.WebsiteConfig.WebsiteID,
+		&i.WebsiteConfig.DefaultPageID,
+		&i.WebsiteConfig.CreatedAt,
+		&i.WebsiteConfig.UpdatedAt,
+		&i.WebsiteConfig.Version,
+		&i.WebsiteStyle.ID,
+		&i.WebsiteStyle.WebsiteID,
+		&i.WebsiteStyle.CreatedAt,
+		&i.WebsiteStyle.UpdatedAt,
+		&i.WebsiteStyle.Version,
+		&i.Palette.ID,
+		&i.Palette.WebsiteStylesID,
+		&i.Palette.ColorOne,
+		&i.Palette.ColorTwo,
+		&i.Palette.ColorThree,
+		&i.Palette.ColorFour,
+		&i.Palette.ColorFive,
+		&i.Palette.ColorSix,
+		&i.Palette.CreatedAt,
+		&i.Palette.UpdatedAt,
+		&i.Palette.Version,
 	)
 	return i, err
 }
 
 const getWebsiteByID = `-- name: GetWebsiteByID :one
-SELECT website.id, website.handle, website.default_locale, website.created_at, website.updated_at, website.version FROM website WHERE id = $1
+SELECT website.id, website.handle, website.default_locale, website.created_at, website.updated_at, website.version, website_config.id, website_config.website_id, website_config.default_page_id, website_config.created_at, website_config.updated_at, website_config.version, website_styles.id, website_styles.website_id, website_styles.created_at, website_styles.updated_at, website_styles.version, palette.id, palette.website_styles_id, palette.color_one, palette.color_two, palette.color_three, palette.color_four, palette.color_five, palette.color_six, palette.created_at, palette.updated_at, palette.version FROM website 
+LEFT JOIN website_config ON website.id = website_config.website_id
+LEFT JOIN website_styles ON website.id = website_styles.website_id
+LEFT JOIN palette ON website_styles.id = palette.website_styles_id
+WHERE website.id = $1
 `
 
 type GetWebsiteByIDRow struct {
-	Website Website `json:"website"`
+	Website       Website       `json:"website"`
+	WebsiteConfig WebsiteConfig `json:"website_config"`
+	WebsiteStyle  WebsiteStyle  `json:"website_style"`
+	Palette       Palette       `json:"palette"`
 }
 
 func (q *Queries) GetWebsiteByID(ctx context.Context, id uuid.UUID) (GetWebsiteByIDRow, error) {
@@ -75,6 +247,28 @@ func (q *Queries) GetWebsiteByID(ctx context.Context, id uuid.UUID) (GetWebsiteB
 		&i.Website.CreatedAt,
 		&i.Website.UpdatedAt,
 		&i.Website.Version,
+		&i.WebsiteConfig.ID,
+		&i.WebsiteConfig.WebsiteID,
+		&i.WebsiteConfig.DefaultPageID,
+		&i.WebsiteConfig.CreatedAt,
+		&i.WebsiteConfig.UpdatedAt,
+		&i.WebsiteConfig.Version,
+		&i.WebsiteStyle.ID,
+		&i.WebsiteStyle.WebsiteID,
+		&i.WebsiteStyle.CreatedAt,
+		&i.WebsiteStyle.UpdatedAt,
+		&i.WebsiteStyle.Version,
+		&i.Palette.ID,
+		&i.Palette.WebsiteStylesID,
+		&i.Palette.ColorOne,
+		&i.Palette.ColorTwo,
+		&i.Palette.ColorThree,
+		&i.Palette.ColorFour,
+		&i.Palette.ColorFive,
+		&i.Palette.ColorSix,
+		&i.Palette.CreatedAt,
+		&i.Palette.UpdatedAt,
+		&i.Palette.Version,
 	)
 	return i, err
 }

@@ -1,8 +1,16 @@
 -- name: GetWebsiteByID :one
-SELECT sqlc.embed(website) FROM website WHERE id = $1;
+SELECT sqlc.embed(website), sqlc.embed(website_config), sqlc.embed(website_styles), sqlc.embed(palette) FROM website 
+LEFT JOIN website_config ON website.id = website_config.website_id
+LEFT JOIN website_styles ON website.id = website_styles.website_id
+LEFT JOIN palette ON website_styles.id = palette.website_styles_id
+WHERE website.id = $1;
 
 -- name: GetWebsiteByHandle :one
-SELECT sqlc.embed(website) FROM website WHERE handle = $1;
+SELECT sqlc.embed(website), sqlc.embed(website_config), sqlc.embed(website_styles), sqlc.embed(palette) FROM website 
+LEFT JOIN website_config ON website.id = website_config.website_id
+LEFT JOIN website_styles ON website.id = website_styles.website_id
+LEFT JOIN palette ON website_styles.id = palette.website_styles_id
+WHERE website.handle = $1;
 
 -- name: GetWebsiteByPageID :one
 SELECT sqlc.embed(website) FROM website 
@@ -30,3 +38,18 @@ ORDER BY website_page.sort_key;
 
 -- name: GetWebsiteContentByWebsiteID :one
 SELECT sqlc.embed(website_content) FROM website_content WHERE website_id = $1 AND locale = $2;
+
+-- name: CreateWebsite :one
+INSERT INTO website (handle, default_locale) VALUES ($1, $2) RETURNING *;
+
+-- name: CreateWebsiteContent :one
+INSERT INTO website_content (website_id, locale, website_display_name, website_display_description) VALUES ($1, $2, $3, $4) RETURNING *;
+
+-- name: CreateWebsiteConfig :one
+INSERT INTO website_config (website_id, default_page_id) VALUES ($1, $2) RETURNING *;
+
+-- name: CreateWebsiteStyles :one
+INSERT INTO website_styles (website_id) VALUES ($1) RETURNING *;
+
+-- name: CreatePalette :one
+INSERT INTO palette (website_styles_id, color_one, color_two, color_three, color_four, color_five, color_six) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;

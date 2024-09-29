@@ -1,27 +1,32 @@
 -- name: GetWebsiteComponentsByWebsiteSectionID :many
-SELECT sqlc.embed(website_component), sqlc.embed(website_page) FROM website_component
+SELECT sqlc.embed(website_component), sqlc.embed(website_component_display), sqlc.embed(website_page) FROM website_component
+LEFT JOIN website_component_display ON website_component.id = website_component_display.website_component_id
 LEFT JOIN website_page ON website_component.website_section_id = website_page.id
 WHERE website_section_id = $1;
 
 -- name: GetTextComponentsByWebsiteID :many
-SELECT sqlc.embed(website_component), sqlc.embed(text_component) FROM website_component
+SELECT sqlc.embed(website_component), sqlc.embed(website_component_display), sqlc.embed(text_component) FROM website_component
+LEFT JOIN website_component_display ON website_component.id = website_component_display.website_component_id
 JOIN text_component ON website_component.id = text_component.website_component_id
 WHERE website_component.website_id = $1
 AND text_component.locale = $2;
 
 -- name: GetImageComponentsByWebsiteID :many
-SELECT sqlc.embed(website_component), sqlc.embed(image_component) FROM website_component
+SELECT sqlc.embed(website_component), sqlc.embed(website_component_display), sqlc.embed(image_component) FROM website_component
+LEFT JOIN website_component_display ON website_component.id = website_component_display.website_component_id
 JOIN image_component ON website_component.id = image_component.website_component_id
 WHERE website_component.website_id = $1;
 
 -- name: GetWebsiteTextComponent :one
-SELECT sqlc.embed(website_component), sqlc.embed(text_component) FROM website_component 
+SELECT sqlc.embed(website_component), sqlc.embed(website_component_display), sqlc.embed(text_component) FROM website_component
+LEFT JOIN website_component_display ON website_component.id = website_component_display.website_component_id
 LEFT JOIN text_component ON website_component.id = text_component.website_component_id
 WHERE website_component.id = $1
 AND text_component.locale = $2;
 
 -- name: GetWebsiteImageComponent :one
-SELECT sqlc.embed(website_component), sqlc.embed(image_component) FROM website_component 
+SELECT sqlc.embed(website_component), sqlc.embed(website_component_display), sqlc.embed(image_component) FROM website_component 
+LEFT JOIN website_component_display ON website_component.id = website_component_display.website_component_id
 LEFT JOIN image_component ON website_component.id = image_component.website_component_id
 WHERE website_component.id = $1;
 
@@ -44,21 +49,6 @@ UPDATE text_component SET
     version = text_component.version + 1
 WHERE website_component_id = sqlc.arg(website_component_id)
 AND locale = sqlc.arg(locale) RETURNING *;
-
--- -- name: CreateWebsiteQandAComponent :one
--- INSERT INTO qanda_component (website_component_id, locale, question, answer, firebase_key, firebase_ref) 
--- VALUES (sqlc.arg(website_component_id), sqlc.arg(locale), sqlc.narg(question), sqlc.narg(answer), sqlc.narg(firebase_key), sqlc.narg(firebase_ref)) RETURNING *;
-
--- -- name: UpdateWebsiteQandAComponent :one
--- UPDATE qanda_component SET 
---     question = coalesce(sqlc.narg(question), qanda_component.question),
---     answer = coalesce(sqlc.narg(answer), qanda_component.answer),
---     firebase_key = coalesce(sqlc.narg(firebase_key), qanda_component.firebase_key),
---     firebase_ref = coalesce(sqlc.narg(firebase_ref), qanda_component.firebase_ref),
---     updated_at = now(), 
---     version = qanda_component.version + 1
--- WHERE website_component_id = sqlc.arg(website_component_id)
--- AND locale = sqlc.arg(locale) RETURNING *;
 
 -- name: UpsertWebsiteSimpleTextComponent :one
 INSERT INTO text_component (website_component_id, locale, content_json, content_html) VALUES ($1, sqlc.arg(locale), sqlc.narg(content_json), sqlc.narg(content_html)) 

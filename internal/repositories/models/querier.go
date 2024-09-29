@@ -11,8 +11,13 @@ import (
 )
 
 type Querier interface {
+	CreatePalette(ctx context.Context, arg CreatePaletteParams) (Palette, error)
+	CreateWebsite(ctx context.Context, arg CreateWebsiteParams) (Website, error)
 	CreateWebsiteComponent(ctx context.Context, arg CreateWebsiteComponentParams) (WebsiteComponent, error)
+	CreateWebsiteConfig(ctx context.Context, arg CreateWebsiteConfigParams) (WebsiteConfig, error)
+	CreateWebsiteContent(ctx context.Context, arg CreateWebsiteContentParams) (WebsiteContent, error)
 	CreateWebsitePage(ctx context.Context, arg CreateWebsitePageParams) (WebsitePage, error)
+	CreateWebsiteStyles(ctx context.Context, websiteID uuid.UUID) (WebsiteStyle, error)
 	GetImageComponentsByWebsiteID(ctx context.Context, websiteID uuid.UUID) ([]GetImageComponentsByWebsiteIDRow, error)
 	GetTextComponentsByWebsiteID(ctx context.Context, arg GetTextComponentsByWebsiteIDParams) ([]GetTextComponentsByWebsiteIDRow, error)
 	GetWebsiteByComponentID(ctx context.Context, id uuid.UUID) (GetWebsiteByComponentIDRow, error)
@@ -34,19 +39,6 @@ type Querier interface {
 	UpdateWebsiteTextComponent(ctx context.Context, arg UpdateWebsiteTextComponentParams) (TextComponent, error)
 	UpsertWebsitePageContent(ctx context.Context, arg UpsertWebsitePageContentParams) (WebsitePageContent, error)
 	UpsertWebsiteQandAComponent(ctx context.Context, arg UpsertWebsiteQandAComponentParams) (ImageComponent, error)
-	// -- name: CreateWebsiteQandAComponent :one
-	// INSERT INTO qanda_component (website_component_id, locale, question, answer, firebase_key, firebase_ref)
-	// VALUES (sqlc.arg(website_component_id), sqlc.arg(locale), sqlc.narg(question), sqlc.narg(answer), sqlc.narg(firebase_key), sqlc.narg(firebase_ref)) RETURNING *;
-	// -- name: UpdateWebsiteQandAComponent :one
-	// UPDATE qanda_component SET
-	//     question = coalesce(sqlc.narg(question), qanda_component.question),
-	//     answer = coalesce(sqlc.narg(answer), qanda_component.answer),
-	//     firebase_key = coalesce(sqlc.narg(firebase_key), qanda_component.firebase_key),
-	//     firebase_ref = coalesce(sqlc.narg(firebase_ref), qanda_component.firebase_ref),
-	//     updated_at = now(),
-	//     version = qanda_component.version + 1
-	// WHERE website_component_id = sqlc.arg(website_component_id)
-	// AND locale = sqlc.arg(locale) RETURNING *;
 	UpsertWebsiteSimpleTextComponent(ctx context.Context, arg UpsertWebsiteSimpleTextComponentParams) (TextComponent, error)
 }
 
