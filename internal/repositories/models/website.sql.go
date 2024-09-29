@@ -103,6 +103,30 @@ func (q *Queries) GetWebsiteByPageID(ctx context.Context, id uuid.UUID) (GetWebs
 	return i, err
 }
 
+const getWebsiteBySectionID = `-- name: GetWebsiteBySectionID :one
+SELECT website.id, website.handle, website.default_locale, website.created_at, website.updated_at, website.version FROM website 
+LEFT JOIN website_section ON website.id = website_section.website_id
+WHERE website_section.id = $1
+`
+
+type GetWebsiteBySectionIDRow struct {
+	Website Website `json:"website"`
+}
+
+func (q *Queries) GetWebsiteBySectionID(ctx context.Context, id uuid.UUID) (GetWebsiteBySectionIDRow, error) {
+	row := q.db.QueryRow(ctx, getWebsiteBySectionID, id)
+	var i GetWebsiteBySectionIDRow
+	err := row.Scan(
+		&i.Website.ID,
+		&i.Website.Handle,
+		&i.Website.DefaultLocale,
+		&i.Website.CreatedAt,
+		&i.Website.UpdatedAt,
+		&i.Website.Version,
+	)
+	return i, err
+}
+
 const getWebsiteContentByWebsiteID = `-- name: GetWebsiteContentByWebsiteID :one
 SELECT website_content.id, website_content.website_id, website_content.locale, website_content.website_display_name, website_content.website_display_description, website_content.created_at, website_content.updated_at, website_content.version FROM website_content WHERE website_id = $1 AND locale = $2
 `
@@ -183,4 +207,27 @@ func (q *Queries) GetWebsitePagesByWebsiteID(ctx context.Context, arg GetWebsite
 		return nil, err
 	}
 	return items, nil
+}
+
+const getWebsiteSectionByID = `-- name: GetWebsiteSectionByID :one
+SELECT website_section.id, website_section.website_id, website_section.website_page_id, website_section.sort_key, website_section.created_at, website_section.updated_at, website_section.version FROM website_section WHERE id = $1
+`
+
+type GetWebsiteSectionByIDRow struct {
+	WebsiteSection WebsiteSection `json:"website_section"`
+}
+
+func (q *Queries) GetWebsiteSectionByID(ctx context.Context, id uuid.UUID) (GetWebsiteSectionByIDRow, error) {
+	row := q.db.QueryRow(ctx, getWebsiteSectionByID, id)
+	var i GetWebsiteSectionByIDRow
+	err := row.Scan(
+		&i.WebsiteSection.ID,
+		&i.WebsiteSection.WebsiteID,
+		&i.WebsiteSection.WebsitePageID,
+		&i.WebsiteSection.SortKey,
+		&i.WebsiteSection.CreatedAt,
+		&i.WebsiteSection.UpdatedAt,
+		&i.WebsiteSection.Version,
+	)
+	return i, err
 }

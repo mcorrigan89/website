@@ -9,10 +9,18 @@ SELECT sqlc.embed(website) FROM website
 LEFT JOIN website_page ON website.id = website_page.website_id
 WHERE website_page.id = $1;
 
+-- name: GetWebsiteBySectionID :one
+SELECT sqlc.embed(website) FROM website 
+LEFT JOIN website_section ON website.id = website_section.website_id
+WHERE website_section.id = $1;
+
 -- name: GetWebsiteByComponentID :one
 SELECT sqlc.embed(website) FROM website 
 LEFT JOIN website_component ON website.id = website_component.website_id
 WHERE website_component.id = $1;
+
+-- name: GetWebsiteSectionByID :one
+SELECT sqlc.embed(website_section) FROM website_section WHERE id = $1;
 
 -- name: GetWebsitePagesByWebsiteID :many
 SELECT sqlc.embed(website_page), sqlc.embed(website_page_content) FROM website_page 

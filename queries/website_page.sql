@@ -26,3 +26,14 @@ ON CONFLICT (website_page_id, locale) DO UPDATE SET
     updated_at = now(), 
     version = website_page_content.version + 1 
 RETURNING *;
+
+-- name: GetWebsiteSectionsByWebsiteID :many
+SELECT sqlc.embed(website_section), sqlc.embed(website_section_display) FROM website_section 
+LEFT JOIN website_section_display ON website_section.id = website_section_display.website_section_id
+WHERE website_section.website_id = $1;
+
+-- name: GetWebsiteSectionsByPageID :many
+SELECT sqlc.embed(website_section), sqlc.embed(website_section_display) FROM website_section
+LEFT JOIN website_section_display ON website_section.id = website_section_display.website_section_id
+WHERE website_section.website_page_id = $1 
+ORDER BY sort_key;

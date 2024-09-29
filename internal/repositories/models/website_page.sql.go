@@ -78,6 +78,99 @@ func (q *Queries) GetWebsitePageByID(ctx context.Context, arg GetWebsitePageByID
 	return i, err
 }
 
+const getWebsiteSectionsByPageID = `-- name: GetWebsiteSectionsByPageID :many
+SELECT website_section.id, website_section.website_id, website_section.website_page_id, website_section.sort_key, website_section.created_at, website_section.updated_at, website_section.version, website_section_display.id, website_section_display.website_section_id, website_section_display.row_count, website_section_display.image_id, website_section_display.created_at, website_section_display.updated_at, website_section_display.version FROM website_section
+LEFT JOIN website_section_display ON website_section.id = website_section_display.website_section_id
+WHERE website_section.website_page_id = $1 
+ORDER BY sort_key
+`
+
+type GetWebsiteSectionsByPageIDRow struct {
+	WebsiteSection        WebsiteSection        `json:"website_section"`
+	WebsiteSectionDisplay WebsiteSectionDisplay `json:"website_section_display"`
+}
+
+func (q *Queries) GetWebsiteSectionsByPageID(ctx context.Context, websitePageID uuid.UUID) ([]GetWebsiteSectionsByPageIDRow, error) {
+	rows, err := q.db.Query(ctx, getWebsiteSectionsByPageID, websitePageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetWebsiteSectionsByPageIDRow{}
+	for rows.Next() {
+		var i GetWebsiteSectionsByPageIDRow
+		if err := rows.Scan(
+			&i.WebsiteSection.ID,
+			&i.WebsiteSection.WebsiteID,
+			&i.WebsiteSection.WebsitePageID,
+			&i.WebsiteSection.SortKey,
+			&i.WebsiteSection.CreatedAt,
+			&i.WebsiteSection.UpdatedAt,
+			&i.WebsiteSection.Version,
+			&i.WebsiteSectionDisplay.ID,
+			&i.WebsiteSectionDisplay.WebsiteSectionID,
+			&i.WebsiteSectionDisplay.RowCount,
+			&i.WebsiteSectionDisplay.ImageID,
+			&i.WebsiteSectionDisplay.CreatedAt,
+			&i.WebsiteSectionDisplay.UpdatedAt,
+			&i.WebsiteSectionDisplay.Version,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWebsiteSectionsByWebsiteID = `-- name: GetWebsiteSectionsByWebsiteID :many
+SELECT website_section.id, website_section.website_id, website_section.website_page_id, website_section.sort_key, website_section.created_at, website_section.updated_at, website_section.version, website_section_display.id, website_section_display.website_section_id, website_section_display.row_count, website_section_display.image_id, website_section_display.created_at, website_section_display.updated_at, website_section_display.version FROM website_section 
+LEFT JOIN website_section_display ON website_section.id = website_section_display.website_section_id
+WHERE website_section.website_id = $1
+`
+
+type GetWebsiteSectionsByWebsiteIDRow struct {
+	WebsiteSection        WebsiteSection        `json:"website_section"`
+	WebsiteSectionDisplay WebsiteSectionDisplay `json:"website_section_display"`
+}
+
+func (q *Queries) GetWebsiteSectionsByWebsiteID(ctx context.Context, websiteID uuid.UUID) ([]GetWebsiteSectionsByWebsiteIDRow, error) {
+	rows, err := q.db.Query(ctx, getWebsiteSectionsByWebsiteID, websiteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetWebsiteSectionsByWebsiteIDRow{}
+	for rows.Next() {
+		var i GetWebsiteSectionsByWebsiteIDRow
+		if err := rows.Scan(
+			&i.WebsiteSection.ID,
+			&i.WebsiteSection.WebsiteID,
+			&i.WebsiteSection.WebsitePageID,
+			&i.WebsiteSection.SortKey,
+			&i.WebsiteSection.CreatedAt,
+			&i.WebsiteSection.UpdatedAt,
+			&i.WebsiteSection.Version,
+			&i.WebsiteSectionDisplay.ID,
+			&i.WebsiteSectionDisplay.WebsiteSectionID,
+			&i.WebsiteSectionDisplay.RowCount,
+			&i.WebsiteSectionDisplay.ImageID,
+			&i.WebsiteSectionDisplay.CreatedAt,
+			&i.WebsiteSectionDisplay.UpdatedAt,
+			&i.WebsiteSectionDisplay.Version,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateWebsitePage = `-- name: UpdateWebsitePage :one
 UPDATE website_page SET 
     url_slug = coalesce($2, website_page.url_slug), 

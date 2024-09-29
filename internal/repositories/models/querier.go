@@ -19,31 +19,35 @@ type Querier interface {
 	GetWebsiteByHandle(ctx context.Context, handle string) (GetWebsiteByHandleRow, error)
 	GetWebsiteByID(ctx context.Context, id uuid.UUID) (GetWebsiteByIDRow, error)
 	GetWebsiteByPageID(ctx context.Context, id uuid.UUID) (GetWebsiteByPageIDRow, error)
-	GetWebsiteComponentsByWebsitePageID(ctx context.Context, websitePageID uuid.UUID) ([]GetWebsiteComponentsByWebsitePageIDRow, error)
+	GetWebsiteBySectionID(ctx context.Context, id uuid.UUID) (GetWebsiteBySectionIDRow, error)
+	GetWebsiteComponentsByWebsiteSectionID(ctx context.Context, websiteSectionID uuid.UUID) ([]GetWebsiteComponentsByWebsiteSectionIDRow, error)
 	GetWebsiteContentByWebsiteID(ctx context.Context, arg GetWebsiteContentByWebsiteIDParams) (GetWebsiteContentByWebsiteIDRow, error)
 	GetWebsiteImageComponent(ctx context.Context, id uuid.UUID) (GetWebsiteImageComponentRow, error)
 	GetWebsitePageByID(ctx context.Context, arg GetWebsitePageByIDParams) (GetWebsitePageByIDRow, error)
 	GetWebsitePagesByWebsiteID(ctx context.Context, arg GetWebsitePagesByWebsiteIDParams) ([]GetWebsitePagesByWebsiteIDRow, error)
+	GetWebsiteSectionByID(ctx context.Context, id uuid.UUID) (GetWebsiteSectionByIDRow, error)
+	GetWebsiteSectionsByPageID(ctx context.Context, websitePageID uuid.UUID) ([]GetWebsiteSectionsByPageIDRow, error)
+	GetWebsiteSectionsByWebsiteID(ctx context.Context, websiteID uuid.UUID) ([]GetWebsiteSectionsByWebsiteIDRow, error)
 	GetWebsiteTextComponent(ctx context.Context, arg GetWebsiteTextComponentParams) (GetWebsiteTextComponentRow, error)
 	UpdateWebsiteComponent(ctx context.Context, arg UpdateWebsiteComponentParams) (WebsiteComponent, error)
 	UpdateWebsitePage(ctx context.Context, arg UpdateWebsitePageParams) (WebsitePage, error)
-	UpdateWebsiteTextComponent(ctx context.Context, arg UpdateWebsiteTextComponentParams) (SimpleTextComponent, error)
+	UpdateWebsiteTextComponent(ctx context.Context, arg UpdateWebsiteTextComponentParams) (TextComponent, error)
 	UpsertWebsitePageContent(ctx context.Context, arg UpsertWebsitePageContentParams) (WebsitePageContent, error)
 	UpsertWebsiteQandAComponent(ctx context.Context, arg UpsertWebsiteQandAComponentParams) (ImageComponent, error)
 	// -- name: CreateWebsiteQandAComponent :one
-	// INSERT INTO simple_qanda_component (website_component_id, locale, question, answer, firebase_key, firebase_ref)
+	// INSERT INTO qanda_component (website_component_id, locale, question, answer, firebase_key, firebase_ref)
 	// VALUES (sqlc.arg(website_component_id), sqlc.arg(locale), sqlc.narg(question), sqlc.narg(answer), sqlc.narg(firebase_key), sqlc.narg(firebase_ref)) RETURNING *;
 	// -- name: UpdateWebsiteQandAComponent :one
-	// UPDATE simple_qanda_component SET
-	//     question = coalesce(sqlc.narg(question), simple_qanda_component.question),
-	//     answer = coalesce(sqlc.narg(answer), simple_qanda_component.answer),
-	//     firebase_key = coalesce(sqlc.narg(firebase_key), simple_qanda_component.firebase_key),
-	//     firebase_ref = coalesce(sqlc.narg(firebase_ref), simple_qanda_component.firebase_ref),
+	// UPDATE qanda_component SET
+	//     question = coalesce(sqlc.narg(question), qanda_component.question),
+	//     answer = coalesce(sqlc.narg(answer), qanda_component.answer),
+	//     firebase_key = coalesce(sqlc.narg(firebase_key), qanda_component.firebase_key),
+	//     firebase_ref = coalesce(sqlc.narg(firebase_ref), qanda_component.firebase_ref),
 	//     updated_at = now(),
-	//     version = simple_qanda_component.version + 1
+	//     version = qanda_component.version + 1
 	// WHERE website_component_id = sqlc.arg(website_component_id)
 	// AND locale = sqlc.arg(locale) RETURNING *;
-	UpsertWebsiteSimpleTextComponent(ctx context.Context, arg UpsertWebsiteSimpleTextComponentParams) (SimpleTextComponent, error)
+	UpsertWebsiteSimpleTextComponent(ctx context.Context, arg UpsertWebsiteSimpleTextComponentParams) (TextComponent, error)
 }
 
 var _ Querier = (*Queries)(nil)

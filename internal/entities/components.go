@@ -4,8 +4,7 @@ import "github.com/google/uuid"
 
 type WebsiteComponentEntity struct {
 	ID             uuid.UUID
-	PageID         uuid.UUID
-	SortKey        string
+	SectionID      uuid.UUID
 	WebsiteID      uuid.UUID
 	TextComponent  *WebsiteTextComponentEntity
 	ImageComponent *WebsiteImageComponentEntity
@@ -14,7 +13,8 @@ type WebsiteComponentEntity struct {
 type WebsiteTextComponentEntity struct {
 	ID          uuid.UUID
 	ComponentID uuid.UUID
-	Text        string
+	Json        []byte
+	Html        *string
 }
 
 type WebsiteImageComponentEntity struct {

@@ -11,11 +11,22 @@ type WebsiteEntity struct {
 }
 
 type WebsitePageEntity struct {
-	ID         uuid.UUID
-	WebsiteID  uuid.UUID
-	UrlSlug    string
-	SortKey    string
-	Title      *string
-	Subtitle   *string
+	ID        uuid.UUID
+	WebsiteID uuid.UUID
+	UrlSlug   string
+	SortKey   string
+	Title     *string
+	Subtitle  *string
+	Sections  []*WebsitePageSectionEntity
+}
+
+type WebsitePageSectionEntity struct {
+	ID        uuid.UUID
+	WebsiteID uuid.UUID
+	PageID    uuid.UUID
+	SortKey   string
+
+	RowCount int32
+
 	Components []*WebsiteComponentEntity
 }

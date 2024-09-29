@@ -12,23 +12,21 @@ import (
 )
 
 const createWebsiteComponent = `-- name: CreateWebsiteComponent :one
-INSERT INTO website_component (website_id, website_page_id, sort_key) VALUES ($1, $2, $3) RETURNING id, website_id, website_page_id, sort_key, created_at, updated_at, version
+INSERT INTO website_component (website_id, website_section_id) VALUES ($1, $2) RETURNING id, website_id, website_section_id, created_at, updated_at, version
 `
 
 type CreateWebsiteComponentParams struct {
-	WebsiteID     uuid.UUID `json:"website_id"`
-	WebsitePageID uuid.UUID `json:"website_page_id"`
-	SortKey       string    `json:"sort_key"`
+	WebsiteID        uuid.UUID `json:"website_id"`
+	WebsiteSectionID uuid.UUID `json:"website_section_id"`
 }
 
 func (q *Queries) CreateWebsiteComponent(ctx context.Context, arg CreateWebsiteComponentParams) (WebsiteComponent, error) {
-	row := q.db.QueryRow(ctx, createWebsiteComponent, arg.WebsiteID, arg.WebsitePageID, arg.SortKey)
+	row := q.db.QueryRow(ctx, createWebsiteComponent, arg.WebsiteID, arg.WebsiteSectionID)
 	var i WebsiteComponent
 	err := row.Scan(
 		&i.ID,
 		&i.WebsiteID,
-		&i.WebsitePageID,
-		&i.SortKey,
+		&i.WebsiteSectionID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Version,
@@ -37,7 +35,7 @@ func (q *Queries) CreateWebsiteComponent(ctx context.Context, arg CreateWebsiteC
 }
 
 const getImageComponentsByWebsiteID = `-- name: GetImageComponentsByWebsiteID :many
-SELECT website_component.id, website_component.website_id, website_component.website_page_id, website_component.sort_key, website_component.created_at, website_component.updated_at, website_component.version, image_component.id, image_component.website_component_id, image_component.image_id, image_component.created_at, image_component.updated_at, image_component.version FROM website_component
+SELECT website_component.id, website_component.website_id, website_component.website_section_id, website_component.created_at, website_component.updated_at, website_component.version, image_component.id, image_component.website_component_id, image_component.image_id, image_component.created_at, image_component.updated_at, image_component.version FROM website_component
 JOIN image_component ON website_component.id = image_component.website_component_id
 WHERE website_component.website_id = $1
 `
@@ -59,8 +57,7 @@ func (q *Queries) GetImageComponentsByWebsiteID(ctx context.Context, websiteID u
 		if err := rows.Scan(
 			&i.WebsiteComponent.ID,
 			&i.WebsiteComponent.WebsiteID,
-			&i.WebsiteComponent.WebsitePageID,
-			&i.WebsiteComponent.SortKey,
+			&i.WebsiteComponent.WebsiteSectionID,
 			&i.WebsiteComponent.CreatedAt,
 			&i.WebsiteComponent.UpdatedAt,
 			&i.WebsiteComponent.Version,
@@ -82,10 +79,10 @@ func (q *Queries) GetImageComponentsByWebsiteID(ctx context.Context, websiteID u
 }
 
 const getTextComponentsByWebsiteID = `-- name: GetTextComponentsByWebsiteID :many
-SELECT website_component.id, website_component.website_id, website_component.website_page_id, website_component.sort_key, website_component.created_at, website_component.updated_at, website_component.version, simple_text_component.id, simple_text_component.website_component_id, simple_text_component.locale, simple_text_component.content, simple_text_component.created_at, simple_text_component.updated_at, simple_text_component.version FROM website_component
-JOIN simple_text_component ON website_component.id = simple_text_component.website_component_id
+SELECT website_component.id, website_component.website_id, website_component.website_section_id, website_component.created_at, website_component.updated_at, website_component.version, text_component.id, text_component.website_component_id, text_component.locale, text_component.content_json, text_component.content_html, text_component.created_at, text_component.updated_at, text_component.version FROM website_component
+JOIN text_component ON website_component.id = text_component.website_component_id
 WHERE website_component.website_id = $1
-AND simple_text_component.locale = $2
+AND text_component.locale = $2
 `
 
 type GetTextComponentsByWebsiteIDParams struct {
@@ -94,8 +91,8 @@ type GetTextComponentsByWebsiteIDParams struct {
 }
 
 type GetTextComponentsByWebsiteIDRow struct {
-	WebsiteComponent    WebsiteComponent    `json:"website_component"`
-	SimpleTextComponent SimpleTextComponent `json:"simple_text_component"`
+	WebsiteComponent WebsiteComponent `json:"website_component"`
+	TextComponent    TextComponent    `json:"text_component"`
 }
 
 func (q *Queries) GetTextComponentsByWebsiteID(ctx context.Context, arg GetTextComponentsByWebsiteIDParams) ([]GetTextComponentsByWebsiteIDRow, error) {
@@ -110,18 +107,18 @@ func (q *Queries) GetTextComponentsByWebsiteID(ctx context.Context, arg GetTextC
 		if err := rows.Scan(
 			&i.WebsiteComponent.ID,
 			&i.WebsiteComponent.WebsiteID,
-			&i.WebsiteComponent.WebsitePageID,
-			&i.WebsiteComponent.SortKey,
+			&i.WebsiteComponent.WebsiteSectionID,
 			&i.WebsiteComponent.CreatedAt,
 			&i.WebsiteComponent.UpdatedAt,
 			&i.WebsiteComponent.Version,
-			&i.SimpleTextComponent.ID,
-			&i.SimpleTextComponent.WebsiteComponentID,
-			&i.SimpleTextComponent.Locale,
-			&i.SimpleTextComponent.Content,
-			&i.SimpleTextComponent.CreatedAt,
-			&i.SimpleTextComponent.UpdatedAt,
-			&i.SimpleTextComponent.Version,
+			&i.TextComponent.ID,
+			&i.TextComponent.WebsiteComponentID,
+			&i.TextComponent.Locale,
+			&i.TextComponent.ContentJson,
+			&i.TextComponent.ContentHtml,
+			&i.TextComponent.CreatedAt,
+			&i.TextComponent.UpdatedAt,
+			&i.TextComponent.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -133,31 +130,30 @@ func (q *Queries) GetTextComponentsByWebsiteID(ctx context.Context, arg GetTextC
 	return items, nil
 }
 
-const getWebsiteComponentsByWebsitePageID = `-- name: GetWebsiteComponentsByWebsitePageID :many
-SELECT website_component.id, website_component.website_id, website_component.website_page_id, website_component.sort_key, website_component.created_at, website_component.updated_at, website_component.version, website_page.id, website_page.website_id, website_page.url_slug, website_page.sort_key, website_page.created_at, website_page.updated_at, website_page.version FROM website_component
-LEFT JOIN website_page ON website_component.website_page_id = website_page.id
-WHERE website_page_id = $1
+const getWebsiteComponentsByWebsiteSectionID = `-- name: GetWebsiteComponentsByWebsiteSectionID :many
+SELECT website_component.id, website_component.website_id, website_component.website_section_id, website_component.created_at, website_component.updated_at, website_component.version, website_page.id, website_page.website_id, website_page.url_slug, website_page.sort_key, website_page.created_at, website_page.updated_at, website_page.version FROM website_component
+LEFT JOIN website_page ON website_component.website_section_id = website_page.id
+WHERE website_section_id = $1
 `
 
-type GetWebsiteComponentsByWebsitePageIDRow struct {
+type GetWebsiteComponentsByWebsiteSectionIDRow struct {
 	WebsiteComponent WebsiteComponent `json:"website_component"`
 	WebsitePage      WebsitePage      `json:"website_page"`
 }
 
-func (q *Queries) GetWebsiteComponentsByWebsitePageID(ctx context.Context, websitePageID uuid.UUID) ([]GetWebsiteComponentsByWebsitePageIDRow, error) {
-	rows, err := q.db.Query(ctx, getWebsiteComponentsByWebsitePageID, websitePageID)
+func (q *Queries) GetWebsiteComponentsByWebsiteSectionID(ctx context.Context, websiteSectionID uuid.UUID) ([]GetWebsiteComponentsByWebsiteSectionIDRow, error) {
+	rows, err := q.db.Query(ctx, getWebsiteComponentsByWebsiteSectionID, websiteSectionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetWebsiteComponentsByWebsitePageIDRow{}
+	items := []GetWebsiteComponentsByWebsiteSectionIDRow{}
 	for rows.Next() {
-		var i GetWebsiteComponentsByWebsitePageIDRow
+		var i GetWebsiteComponentsByWebsiteSectionIDRow
 		if err := rows.Scan(
 			&i.WebsiteComponent.ID,
 			&i.WebsiteComponent.WebsiteID,
-			&i.WebsiteComponent.WebsitePageID,
-			&i.WebsiteComponent.SortKey,
+			&i.WebsiteComponent.WebsiteSectionID,
 			&i.WebsiteComponent.CreatedAt,
 			&i.WebsiteComponent.UpdatedAt,
 			&i.WebsiteComponent.Version,
@@ -180,7 +176,7 @@ func (q *Queries) GetWebsiteComponentsByWebsitePageID(ctx context.Context, websi
 }
 
 const getWebsiteImageComponent = `-- name: GetWebsiteImageComponent :one
-SELECT website_component.id, website_component.website_id, website_component.website_page_id, website_component.sort_key, website_component.created_at, website_component.updated_at, website_component.version, image_component.id, image_component.website_component_id, image_component.image_id, image_component.created_at, image_component.updated_at, image_component.version FROM website_component 
+SELECT website_component.id, website_component.website_id, website_component.website_section_id, website_component.created_at, website_component.updated_at, website_component.version, image_component.id, image_component.website_component_id, image_component.image_id, image_component.created_at, image_component.updated_at, image_component.version FROM website_component 
 LEFT JOIN image_component ON website_component.id = image_component.website_component_id
 WHERE website_component.id = $1
 `
@@ -196,8 +192,7 @@ func (q *Queries) GetWebsiteImageComponent(ctx context.Context, id uuid.UUID) (G
 	err := row.Scan(
 		&i.WebsiteComponent.ID,
 		&i.WebsiteComponent.WebsiteID,
-		&i.WebsiteComponent.WebsitePageID,
-		&i.WebsiteComponent.SortKey,
+		&i.WebsiteComponent.WebsiteSectionID,
 		&i.WebsiteComponent.CreatedAt,
 		&i.WebsiteComponent.UpdatedAt,
 		&i.WebsiteComponent.Version,
@@ -212,10 +207,10 @@ func (q *Queries) GetWebsiteImageComponent(ctx context.Context, id uuid.UUID) (G
 }
 
 const getWebsiteTextComponent = `-- name: GetWebsiteTextComponent :one
-SELECT website_component.id, website_component.website_id, website_component.website_page_id, website_component.sort_key, website_component.created_at, website_component.updated_at, website_component.version, simple_text_component.id, simple_text_component.website_component_id, simple_text_component.locale, simple_text_component.content, simple_text_component.created_at, simple_text_component.updated_at, simple_text_component.version FROM website_component 
-LEFT JOIN simple_text_component ON website_component.id = simple_text_component.website_component_id
+SELECT website_component.id, website_component.website_id, website_component.website_section_id, website_component.created_at, website_component.updated_at, website_component.version, text_component.id, text_component.website_component_id, text_component.locale, text_component.content_json, text_component.content_html, text_component.created_at, text_component.updated_at, text_component.version FROM website_component 
+LEFT JOIN text_component ON website_component.id = text_component.website_component_id
 WHERE website_component.id = $1
-AND simple_text_component.locale = $2
+AND text_component.locale = $2
 `
 
 type GetWebsiteTextComponentParams struct {
@@ -224,8 +219,8 @@ type GetWebsiteTextComponentParams struct {
 }
 
 type GetWebsiteTextComponentRow struct {
-	WebsiteComponent    WebsiteComponent    `json:"website_component"`
-	SimpleTextComponent SimpleTextComponent `json:"simple_text_component"`
+	WebsiteComponent WebsiteComponent `json:"website_component"`
+	TextComponent    TextComponent    `json:"text_component"`
 }
 
 func (q *Queries) GetWebsiteTextComponent(ctx context.Context, arg GetWebsiteTextComponentParams) (GetWebsiteTextComponentRow, error) {
@@ -234,18 +229,18 @@ func (q *Queries) GetWebsiteTextComponent(ctx context.Context, arg GetWebsiteTex
 	err := row.Scan(
 		&i.WebsiteComponent.ID,
 		&i.WebsiteComponent.WebsiteID,
-		&i.WebsiteComponent.WebsitePageID,
-		&i.WebsiteComponent.SortKey,
+		&i.WebsiteComponent.WebsiteSectionID,
 		&i.WebsiteComponent.CreatedAt,
 		&i.WebsiteComponent.UpdatedAt,
 		&i.WebsiteComponent.Version,
-		&i.SimpleTextComponent.ID,
-		&i.SimpleTextComponent.WebsiteComponentID,
-		&i.SimpleTextComponent.Locale,
-		&i.SimpleTextComponent.Content,
-		&i.SimpleTextComponent.CreatedAt,
-		&i.SimpleTextComponent.UpdatedAt,
-		&i.SimpleTextComponent.Version,
+		&i.TextComponent.ID,
+		&i.TextComponent.WebsiteComponentID,
+		&i.TextComponent.Locale,
+		&i.TextComponent.ContentJson,
+		&i.TextComponent.ContentHtml,
+		&i.TextComponent.CreatedAt,
+		&i.TextComponent.UpdatedAt,
+		&i.TextComponent.Version,
 	)
 	return i, err
 }
@@ -253,33 +248,25 @@ func (q *Queries) GetWebsiteTextComponent(ctx context.Context, arg GetWebsiteTex
 const updateWebsiteComponent = `-- name: UpdateWebsiteComponent :one
 UPDATE website_component SET
     website_id = coalesce($1, website_component.website_id),
-    website_page_id = coalesce($2, website_component.website_page_id),
-    sort_key = coalesce($3, website_component.sort_key),
+    website_section_id = coalesce($2, website_component.website_section_id),
     updated_at = now(), 
     version = website_component.version + 1
-WHERE id = $4 RETURNING id, website_id, website_page_id, sort_key, created_at, updated_at, version
+WHERE id = $3 RETURNING id, website_id, website_section_id, created_at, updated_at, version
 `
 
 type UpdateWebsiteComponentParams struct {
-	WebsiteID     uuid.UUID `json:"website_id"`
-	WebsitePageID uuid.UUID `json:"website_page_id"`
-	SortKey       string    `json:"sort_key"`
-	ID            uuid.UUID `json:"id"`
+	WebsiteID        uuid.UUID `json:"website_id"`
+	WebsiteSectionID uuid.UUID `json:"website_section_id"`
+	ID               uuid.UUID `json:"id"`
 }
 
 func (q *Queries) UpdateWebsiteComponent(ctx context.Context, arg UpdateWebsiteComponentParams) (WebsiteComponent, error) {
-	row := q.db.QueryRow(ctx, updateWebsiteComponent,
-		arg.WebsiteID,
-		arg.WebsitePageID,
-		arg.SortKey,
-		arg.ID,
-	)
+	row := q.db.QueryRow(ctx, updateWebsiteComponent, arg.WebsiteID, arg.WebsiteSectionID, arg.ID)
 	var i WebsiteComponent
 	err := row.Scan(
 		&i.ID,
 		&i.WebsiteID,
-		&i.WebsitePageID,
-		&i.SortKey,
+		&i.WebsiteSectionID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Version,
@@ -288,28 +275,36 @@ func (q *Queries) UpdateWebsiteComponent(ctx context.Context, arg UpdateWebsiteC
 }
 
 const updateWebsiteTextComponent = `-- name: UpdateWebsiteTextComponent :one
-UPDATE simple_text_component SET
-    content = coalesce($1, simple_text_component.content),
+UPDATE text_component SET
+    content_json = coalesce($1, text_component.content_json),
+    content_html = coalesce($2, text_component.content_html),
     updated_at = now(), 
-    version = simple_text_component.version + 1
-WHERE website_component_id = $2
-AND locale = $3 RETURNING id, website_component_id, locale, content, created_at, updated_at, version
+    version = text_component.version + 1
+WHERE website_component_id = $3
+AND locale = $4 RETURNING id, website_component_id, locale, content_json, content_html, created_at, updated_at, version
 `
 
 type UpdateWebsiteTextComponentParams struct {
-	Content            *string   `json:"content"`
+	ContentJson        []byte    `json:"content_json"`
+	ContentHtml        *string   `json:"content_html"`
 	WebsiteComponentID uuid.UUID `json:"website_component_id"`
 	Locale             string    `json:"locale"`
 }
 
-func (q *Queries) UpdateWebsiteTextComponent(ctx context.Context, arg UpdateWebsiteTextComponentParams) (SimpleTextComponent, error) {
-	row := q.db.QueryRow(ctx, updateWebsiteTextComponent, arg.Content, arg.WebsiteComponentID, arg.Locale)
-	var i SimpleTextComponent
+func (q *Queries) UpdateWebsiteTextComponent(ctx context.Context, arg UpdateWebsiteTextComponentParams) (TextComponent, error) {
+	row := q.db.QueryRow(ctx, updateWebsiteTextComponent,
+		arg.ContentJson,
+		arg.ContentHtml,
+		arg.WebsiteComponentID,
+		arg.Locale,
+	)
+	var i TextComponent
 	err := row.Scan(
 		&i.ID,
 		&i.WebsiteComponentID,
 		&i.Locale,
-		&i.Content,
+		&i.ContentJson,
+		&i.ContentHtml,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Version,
@@ -347,42 +342,50 @@ func (q *Queries) UpsertWebsiteQandAComponent(ctx context.Context, arg UpsertWeb
 const upsertWebsiteSimpleTextComponent = `-- name: UpsertWebsiteSimpleTextComponent :one
 
 
-INSERT INTO simple_text_component (website_component_id, locale, content) VALUES ($1, $2, $3) 
+INSERT INTO text_component (website_component_id, locale, content_json, content_html) VALUES ($1, $2, $3, $4) 
 ON CONFLICT (website_component_id, locale) DO UPDATE SET 
-    content = coalesce($3, simple_text_component.content),
+    content_json = coalesce($3, text_component.content_json),
+    content_html = coalesce($4, text_component.content_html),
     updated_at = now(), 
-    version = simple_text_component.version + 1 RETURNING id, website_component_id, locale, content, created_at, updated_at, version
+    version = text_component.version + 1 RETURNING id, website_component_id, locale, content_json, content_html, created_at, updated_at, version
 `
 
 type UpsertWebsiteSimpleTextComponentParams struct {
 	WebsiteComponentID uuid.UUID `json:"website_component_id"`
 	Locale             string    `json:"locale"`
-	Content            *string   `json:"content"`
+	ContentJson        []byte    `json:"content_json"`
+	ContentHtml        *string   `json:"content_html"`
 }
 
 // -- name: CreateWebsiteQandAComponent :one
-// INSERT INTO simple_qanda_component (website_component_id, locale, question, answer, firebase_key, firebase_ref)
+// INSERT INTO qanda_component (website_component_id, locale, question, answer, firebase_key, firebase_ref)
 // VALUES (sqlc.arg(website_component_id), sqlc.arg(locale), sqlc.narg(question), sqlc.narg(answer), sqlc.narg(firebase_key), sqlc.narg(firebase_ref)) RETURNING *;
 // -- name: UpdateWebsiteQandAComponent :one
-// UPDATE simple_qanda_component SET
+// UPDATE qanda_component SET
 //
-//	question = coalesce(sqlc.narg(question), simple_qanda_component.question),
-//	answer = coalesce(sqlc.narg(answer), simple_qanda_component.answer),
-//	firebase_key = coalesce(sqlc.narg(firebase_key), simple_qanda_component.firebase_key),
-//	firebase_ref = coalesce(sqlc.narg(firebase_ref), simple_qanda_component.firebase_ref),
+//	question = coalesce(sqlc.narg(question), qanda_component.question),
+//	answer = coalesce(sqlc.narg(answer), qanda_component.answer),
+//	firebase_key = coalesce(sqlc.narg(firebase_key), qanda_component.firebase_key),
+//	firebase_ref = coalesce(sqlc.narg(firebase_ref), qanda_component.firebase_ref),
 //	updated_at = now(),
-//	version = simple_qanda_component.version + 1
+//	version = qanda_component.version + 1
 //
 // WHERE website_component_id = sqlc.arg(website_component_id)
 // AND locale = sqlc.arg(locale) RETURNING *;
-func (q *Queries) UpsertWebsiteSimpleTextComponent(ctx context.Context, arg UpsertWebsiteSimpleTextComponentParams) (SimpleTextComponent, error) {
-	row := q.db.QueryRow(ctx, upsertWebsiteSimpleTextComponent, arg.WebsiteComponentID, arg.Locale, arg.Content)
-	var i SimpleTextComponent
+func (q *Queries) UpsertWebsiteSimpleTextComponent(ctx context.Context, arg UpsertWebsiteSimpleTextComponentParams) (TextComponent, error) {
+	row := q.db.QueryRow(ctx, upsertWebsiteSimpleTextComponent,
+		arg.WebsiteComponentID,
+		arg.Locale,
+		arg.ContentJson,
+		arg.ContentHtml,
+	)
+	var i TextComponent
 	err := row.Scan(
 		&i.ID,
 		&i.WebsiteComponentID,
 		&i.Locale,
-		&i.Content,
+		&i.ContentJson,
+		&i.ContentHtml,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Version,

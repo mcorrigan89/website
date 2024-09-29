@@ -24,18 +24,20 @@ func NewWebsiteComponentService(utils ServicesUtils, repos *repositories.Reposit
 	}
 }
 
-type CreateSimpleTextComponentArgs struct {
-	WebsitePageID uuid.UUID
-	Locale        *string
-	Content       *string
+type CreateTextComponentArgs struct {
+	WebsiteSectionID uuid.UUID
+	Locale           *string
+	Json             []byte
+	Html             *string
 }
 
-func (service *WebsiteComponentService) CreateSimpleTextComponent(ctx context.Context, args CreateSimpleTextComponentArgs) (*entities.WebsiteComponentEntity, error) {
+func (service *WebsiteComponentService) CreateTextComponent(ctx context.Context, args CreateTextComponentArgs) (*entities.WebsiteComponentEntity, error) {
 	service.utils.logger.Info().Ctx(ctx).Interface("args", args).Msg("Creating smple text component")
-	component, err := service.websiteComponentRepository.CreateSimpleTextComponent(ctx, repositories.CreateSimpleTextComponentArgs{
-		WebsitePageID: args.WebsitePageID,
-		Locale:        args.Locale,
-		Content:       args.Content,
+	component, err := service.websiteComponentRepository.CreateTextComponent(ctx, repositories.CreateTextComponentArgs{
+		WebsiteSectionID: args.WebsiteSectionID,
+		Locale:           args.Locale,
+		Json:             args.Json,
+		Html:             args.Html,
 	})
 
 	if err != nil {
@@ -48,17 +50,19 @@ func (service *WebsiteComponentService) CreateSimpleTextComponent(ctx context.Co
 }
 
 type UpdateTextComponentArgs struct {
-	ID      uuid.UUID
-	Locale  *string
-	Content *string
+	ID     uuid.UUID
+	Locale *string
+	Json   []byte
+	Html   *string
 }
 
-func (service *WebsiteComponentService) UpdateSimpleTextComponent(ctx context.Context, args UpdateTextComponentArgs) (*entities.WebsiteComponentEntity, error) {
+func (service *WebsiteComponentService) UpdateTextComponent(ctx context.Context, args UpdateTextComponentArgs) (*entities.WebsiteComponentEntity, error) {
 	service.utils.logger.Info().Ctx(ctx).Interface("args", args).Msg("Updating text component")
-	component, err := service.websiteComponentRepository.UpdateSimpleTextComponent(ctx, repositories.UpdateSimpleTextComponent{
-		ID:      args.ID,
-		Locale:  args.Locale,
-		Content: args.Content,
+	component, err := service.websiteComponentRepository.UpdateTextComponent(ctx, repositories.UpdateTextComponent{
+		ID:     args.ID,
+		Locale: args.Locale,
+		Json:   args.Json,
+		Html:   args.Html,
 	})
 
 	if err != nil {

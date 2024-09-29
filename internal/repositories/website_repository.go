@@ -49,6 +49,7 @@ func (repo *WebsiteRepository) GetWebsiteByHandle(ctx context.Context, handle st
 
 	websiteEntity, err := repo.gatherWebsiteData(ctx, qtx, &row.Website, locale)
 	if err != nil {
+		repo.utils.logger.Err(err).Ctx(ctx).Msg("Error gathering website data")
 		return nil, err
 	}
 
@@ -81,6 +82,12 @@ func (repo *WebsiteRepository) gatherWebsiteData(ctx context.Context, qtx *model
 		return nil, err
 	}
 
+	sectionRows, err := qtx.GetWebsiteSectionsByWebsiteID(ctx, website.ID)
+	if err != nil {
+		repo.utils.logger.Err(err).Ctx(ctx).Msg("Error getting website sections by page id")
+		return nil, err
+	}
+
 	textComponentRows, err := qtx.GetTextComponentsByWebsiteID(ctx, models.GetTextComponentsByWebsiteIDParams{
 		WebsiteID: website.ID,
 		Locale:    *locale,
@@ -98,6 +105,7 @@ func (repo *WebsiteRepository) gatherWebsiteData(ctx context.Context, qtx *model
 	}
 
 	websiteEntity := repo.modelToEntity(website, websiteContentRow, pageRows, componentArgs{
+		sections:        sectionRows,
 		textComponents:  textComponentRows,
 		imageComponents: imageComponentRows,
 	})
@@ -107,59 +115,78 @@ func (repo *WebsiteRepository) gatherWebsiteData(ctx context.Context, qtx *model
 }
 
 type componentArgs struct {
+	sections        []models.GetWebsiteSectionsByWebsiteIDRow
 	textComponents  []models.GetTextComponentsByWebsiteIDRow
 	imageComponents []models.GetImageComponentsByWebsiteIDRow
 }
 
 func (repo *WebsiteRepository) modelToEntity(row *models.Website, content models.GetWebsiteContentByWebsiteIDRow, pages []models.GetWebsitePagesByWebsiteIDRow, components componentArgs) entities.WebsiteEntity {
+
 	pageEntities := []*entities.WebsitePageEntity{}
 
 	for _, pageRow := range pages {
 
-		componentEntities := []*entities.WebsiteComponentEntity{}
+		sectionEntities := []*entities.WebsitePageSectionEntity{}
 
-		for _, component := range components.textComponents {
-			if component.WebsiteComponent.WebsitePageID == pageRow.WebsitePage.ID {
-				componentEntities = append(componentEntities, &entities.WebsiteComponentEntity{
-					ID:        component.WebsiteComponent.ID,
-					SortKey:   component.WebsiteComponent.SortKey,
-					PageID:    component.WebsiteComponent.WebsitePageID,
-					WebsiteID: component.WebsiteComponent.WebsiteID,
-					TextComponent: &entities.WebsiteTextComponentEntity{
-						ID:   component.SimpleTextComponent.ID,
-						Text: component.SimpleTextComponent.Content,
-					},
-				})
+		for _, section := range components.sections {
+			if section.WebsiteSection.WebsitePageID == pageRow.WebsitePage.ID {
+
+				componentEntities := []*entities.WebsiteComponentEntity{}
+
+				for _, component := range components.textComponents {
+					if component.WebsiteComponent.WebsiteSectionID == section.WebsiteSection.ID {
+						componentEntities = append(componentEntities, &entities.WebsiteComponentEntity{
+							ID:        component.WebsiteComponent.ID,
+							SectionID: component.WebsiteComponent.WebsiteSectionID,
+							WebsiteID: component.WebsiteComponent.WebsiteID,
+							TextComponent: &entities.WebsiteTextComponentEntity{
+								ID:   component.TextComponent.ID,
+								Json: component.TextComponent.ContentJson,
+								Html: component.TextComponent.ContentHtml,
+							},
+						})
+					}
+				}
+
+				for _, component := range components.imageComponents {
+					if component.WebsiteComponent.WebsiteSectionID == section.WebsiteSection.ID {
+						componentEntities = append(componentEntities, &entities.WebsiteComponentEntity{
+							ID:        component.WebsiteComponent.ID,
+							SectionID: component.WebsiteComponent.WebsiteSectionID,
+							WebsiteID: component.WebsiteComponent.WebsiteID,
+							ImageComponent: &entities.WebsiteImageComponentEntity{
+								ID:       component.ImageComponent.ID,
+								PhotoURL: component.ImageComponent.ImageID.String(),
+							},
+						})
+					}
+				}
+
+				sectionEntity := &entities.WebsitePageSectionEntity{
+					ID:         section.WebsiteSection.ID,
+					WebsiteID:  section.WebsiteSection.WebsiteID,
+					PageID:     section.WebsiteSection.WebsitePageID,
+					SortKey:    section.WebsiteSection.SortKey,
+					RowCount:   section.WebsiteSectionDisplay.RowCount,
+					Components: componentEntities,
+				}
+
+				sectionEntities = append(sectionEntities, sectionEntity)
 			}
 		}
 
-		for _, component := range components.imageComponents {
-			if component.WebsiteComponent.WebsitePageID == pageRow.WebsitePage.ID {
-				componentEntities = append(componentEntities, &entities.WebsiteComponentEntity{
-					ID:        component.WebsiteComponent.ID,
-					SortKey:   component.WebsiteComponent.SortKey,
-					PageID:    component.WebsiteComponent.WebsitePageID,
-					WebsiteID: component.WebsiteComponent.WebsiteID,
-					ImageComponent: &entities.WebsiteImageComponentEntity{
-						ID:       component.ImageComponent.ID,
-						PhotoURL: component.ImageComponent.ImageID.String(),
-					},
-				})
-			}
-		}
-
-		sort.Slice(componentEntities, func(i, j int) bool {
-			return componentEntities[i].SortKey < componentEntities[j].SortKey
+		sort.Slice(sectionEntities, func(i, j int) bool {
+			return sectionEntities[i].SortKey < sectionEntities[j].SortKey
 		})
 
 		pageEntities = append(pageEntities, &entities.WebsitePageEntity{
-			ID:         pageRow.WebsitePage.ID,
-			WebsiteID:  pageRow.WebsitePage.WebsiteID,
-			SortKey:    pageRow.WebsitePage.SortKey,
-			UrlSlug:    pageRow.WebsitePage.UrlSlug,
-			Title:      pageRow.WebsitePageContent.Title,
-			Subtitle:   pageRow.WebsitePageContent.Subtitle,
-			Components: componentEntities,
+			ID:        pageRow.WebsitePage.ID,
+			WebsiteID: pageRow.WebsitePage.WebsiteID,
+			SortKey:   pageRow.WebsitePage.SortKey,
+			UrlSlug:   pageRow.WebsitePage.UrlSlug,
+			Title:     pageRow.WebsitePageContent.Title,
+			Subtitle:  pageRow.WebsitePageContent.Subtitle,
+			Sections:  sectionEntities,
 		})
 	}
 

@@ -51,13 +51,13 @@ func (s *WebsiteServerV1) WebsiteByHandle(ctx context.Context, req *connect.Requ
 
 	for _, page := range website.Pages {
 
-		components := s.createComponents(page)
+		sectionsAndComponents := s.createSectionsAndComponents(page)
 
 		p := websitev1.WebsitePage{
-			Id:         page.ID.String(),
-			Title:      page.Title,
-			Subtitle:   page.Subtitle,
-			Components: components,
+			Id:       page.ID.String(),
+			Title:    page.Title,
+			Subtitle: page.Subtitle,
+			Sections: sectionsAndComponents,
 		}
 
 		websitePages = append(websitePages, &p)
@@ -76,36 +76,53 @@ func (s *WebsiteServerV1) WebsiteByHandle(ctx context.Context, req *connect.Requ
 	return res, nil
 }
 
-func (s *WebsiteServerV1) createComponents(page *entities.WebsitePageEntity) []*websitev1.WebsiteComponent {
-	components := []*websitev1.WebsiteComponent{}
+func (s *WebsiteServerV1) createSectionsAndComponents(page *entities.WebsitePageEntity) []*websitev1.WebsiteSection {
 
-	for _, component := range page.Components {
-		if component.TextComponent != nil {
-			c := websitev1.WebsiteComponent{
-				Id: component.ID.String(),
-				ComponentContent: &websitev1.WebsiteComponent_TextComponent{
-					TextComponent: &websitev1.SimpleTextComponent{
-						Text: component.TextComponent.Text,
+	sections := []*websitev1.WebsiteSection{}
+	for _, section := range page.Sections {
+
+		components := []*websitev1.WebsiteComponent{}
+
+		for _, component := range section.Components {
+			if component.TextComponent != nil {
+				var jsonString string
+				if component.TextComponent.Json != nil {
+					jsonString = string(component.TextComponent.Json)
+				}
+				c := websitev1.WebsiteComponent{
+					Id: component.ID.String(),
+					ComponentContent: &websitev1.WebsiteComponent_TextComponent{
+						TextComponent: &websitev1.TextComponent{
+							Json: &jsonString,
+							Html: component.TextComponent.Html,
+						},
 					},
-				},
+				}
+
+				components = append(components, &c)
 			}
 
-			components = append(components, &c)
-		}
-
-		if component.ImageComponent != nil {
-			c := websitev1.WebsiteComponent{
-				Id: component.ID.String(),
-				ComponentContent: &websitev1.WebsiteComponent_ImageComponent{
-					ImageComponent: &websitev1.ImageComponent{
-						Url: component.ImageComponent.PhotoURL,
+			if component.ImageComponent != nil {
+				c := websitev1.WebsiteComponent{
+					Id: component.ID.String(),
+					ComponentContent: &websitev1.WebsiteComponent_ImageComponent{
+						ImageComponent: &websitev1.ImageComponent{
+							Url: component.ImageComponent.PhotoURL,
+						},
 					},
-				},
-			}
+				}
 
-			components = append(components, &c)
+				components = append(components, &c)
+			}
 		}
+
+		s := websitev1.WebsiteSection{
+			Id:         section.ID.String(),
+			Components: components,
+		}
+
+		sections = append(sections, &s)
 	}
 
-	return components
+	return sections
 }
